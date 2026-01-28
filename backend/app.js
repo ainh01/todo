@@ -68,7 +68,7 @@ app.use('/api', userRouter);
 app.use('/api', taskRouter);
 
 // Health check  
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({
     message: 'API is running',
     docs: '/api-docs'
