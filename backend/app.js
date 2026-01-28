@@ -8,7 +8,12 @@ const taskRouter = require('./src/routers/TaskRouter');
 const cors = require('cors');
 
 const app = express();
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  methods: (process.env.CORS_METHODS || 'GET,POST,PUT,DELETE,OPTIONS').split(','),
+  allowedHeaders: (process.env.CORS_HEADERS || 'Content-Type,Authorization').split(',')
+}));
+
 const PORT = process.env.PORT || 3000;
 
 connectDB();
