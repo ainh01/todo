@@ -1,4 +1,4 @@
-[📍 English Intro Click Here](#english)
+[📍 Vietnamese Intro Click Here](#tiếng-việt)
 ---  
 
 <a name="english"></a>  
