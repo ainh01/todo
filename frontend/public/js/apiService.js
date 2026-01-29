@@ -22,7 +22,6 @@ const ApiService = {
         return data;  
     },  
 
-    // Fetch all tasks (sorted by slot)
     async getTasks() {  
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {  
             method: 'GET',  
@@ -31,7 +30,6 @@ const ApiService = {
         return this.handleResponse(response);  
     },  
 
-    // Get single task
     async getTask(taskId) {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {
             method: 'GET',
@@ -40,7 +38,6 @@ const ApiService = {
         return this.handleResponse(response);
     },
 
-    // Create new task (only title required)
     async createTask(title) {  
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {  
             method: 'POST',  
@@ -50,7 +47,6 @@ const ApiService = {
         return this.handleResponse(response);  
     },  
 
-    // Update task title only
     async updateTask(taskId, title) {  
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {  
             method: 'PUT',  
@@ -60,7 +56,6 @@ const ApiService = {
         return this.handleResponse(response);  
     },
 
-    // Toggle task finished status
     async finishTask(taskId) {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/finish`, {
             method: 'POST',
@@ -69,7 +64,6 @@ const ApiService = {
         return this.handleResponse(response);
     },
 
-    // Move task to different slot position
     async moveTask(taskId, targetSlot) {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/move`, {
             method: 'PUT',
@@ -79,7 +73,6 @@ const ApiService = {
         return this.handleResponse(response);
     },
 
-    // Delete task  
     async deleteTask(taskId) {  
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {  
             method: 'DELETE',  
