@@ -1,5 +1,4 @@
-# Language Toggle: [English](#english) | [Tiếng Việt](#tiếng-việt)  
-
+[📍 English Intro Click Here](#english)
 ---  
 
 <a name="english"></a>  
