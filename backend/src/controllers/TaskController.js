@@ -258,34 +258,29 @@ exports.finishTask = async (req, res) => {
 exports.deleteTask = async (req, res) => {
   try {
     const taskId = parseInt(req.params.id);
-    const user = await User.findById(req.userId);
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.userId, 'tasks.task_id': taskId },
+      { $pull: { tasks: { task_id: taskId } } },
+      { new: false }
+    );
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    const taskIndex = user.tasks.findIndex(t => t.task_id === taskId);
-
-    if (taskIndex === -1) {
       return res.status(404).json({
         success: false,
         error: 'Task not found'
       });
     }
 
-    const deletedSlot = user.tasks[taskIndex].slot;
-    user.tasks.splice(taskIndex, 1);
+    const deletedSlot = user.tasks.find(t => t.task_id === taskId)?.slot;
 
-    user.tasks.forEach(t => {
-      if (t.slot > deletedSlot) {
-        t.slot -= 1;
-      }
-    });
-
-    await user.save();
+    if (deletedSlot !== undefined) {
+      await User.updateOne(
+        { _id: req.userId, 'tasks.slot': { $gt: deletedSlot } },
+        { $inc: { 'tasks.$[elem].slot': -1 } },
+        { arrayFilters: [{ 'elem.slot': { $gt: deletedSlot } }] }
+      );
+    }
 
     res.status(200).json({
       success: true,
