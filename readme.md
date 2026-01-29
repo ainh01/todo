@@ -15,7 +15,7 @@ A simple yet powerful full-stack to-do list application that enables users to ma
 * **Dockerized Backend:** Effortless setup and deployment of backend environment.  
 <img width="1899" height="959" alt="image" src="https://github.com/user-attachments/assets/629c54c8-1134-4224-ad61-3f0998a24dd7" />
 
-**[View Live Demo here](https://todo.xain.click/)**  
+Demo: **[View Live Demo here](https://todo.xain.click/)**  
 
 ## Features  
 
