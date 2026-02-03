@@ -681,9 +681,9 @@
               ).length;
 
               await this.loadTodos();
-              if (remainingIncompleteTasks === 0) {
-                this.celebrateCompletion();
-              }
+              
+              this.celebrateCompletion();
+              
             } catch (error) {
               await alert(
                 "Failed to mark as completed: " + error.message,
