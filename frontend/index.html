@@ -674,6 +674,7 @@
 
           async markAsCompleted(todo) {
             try {
+              sound.currentTime = 0;
               const response = await ApiService.finishTask(todo.id, true);
               const updated = response.data || response;
               todo.completed = updated.finished;
@@ -708,7 +709,6 @@
           },
 
           celebrateCompletion() {
-            sound.currentTime = 0;
             sound.play();
             if (typeof confetti !== "undefined") {
               confetti({
@@ -735,6 +735,7 @@
           },
 
           async markAllAsCompleted() {
+            sound.currentTime = 0;
             const confirmed = await confirm(
               "Confirm to mark all as completed?",
             );
@@ -756,7 +757,7 @@
                 });
 
                 await Promise.all(updatePromises);
-                this.celebrateCompletion(); // ✓ Already present
+                this.celebrateCompletion();
                 await this.loadTodos();
               } catch (error) {
                 await alert(
