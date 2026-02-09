@@ -708,6 +708,8 @@
           },
 
           celebrateCompletion() {
+            sound.currentTime = 0;
+            sound.play();
             if (typeof confetti !== "undefined") {
               confetti({
                 particleCount: 350,
@@ -727,8 +729,6 @@
                 origin: { x: 1.0, y: 1.0 },
                 colors: this.confettiColors,
               });
-              sound.currentTime = 0;
-              sound.play();
             } else {
               console.warn("Confetti library not loaded.");
             }
