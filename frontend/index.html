@@ -1334,7 +1334,7 @@
         const radios = box.querySelectorAll("input[name='seq-position']");
 
         function updatePreview() {
-          const name = nameInput.value.trim();
+          const name = nameInput.value;
           const from = parseInt(fromInput.value, 10);
           const to = parseInt(toInput.value, 10);
           const isSuffix = box.querySelector("#seq-suffix").checked;
@@ -1361,7 +1361,7 @@
         updatePreview();
 
         function validate() {
-          const name = nameInput.value.trim();
+          const name = nameInput.value;
           const from = parseInt(fromInput.value, 10);
           const to = parseInt(toInput.value, 10);
 
@@ -1395,7 +1395,7 @@
         createBtn.addEventListener("click", async () => {
           if (!validate()) return;
 
-          const name = nameInput.value.trim();
+          const name = nameInput.value;
           const from = parseInt(fromInput.value, 10);
           const to = parseInt(toInput.value, 10);
           const isSuffix = box.querySelector("#seq-suffix").checked;
