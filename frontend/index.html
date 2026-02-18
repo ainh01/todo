@@ -17,17 +17,10 @@
     <link href="public/css/normalize.css" rel="stylesheet" media="screen" />
     <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
     <script>
-      const browserLanguage = navigator.language || navigator.userLanguage;
-      const languageCode = browserLanguage.split("-")[0].toLowerCase();
-      if (!localStorage.getItem("uiineed-todos-lang"))
-        localStorage.setItem("uiineed-todos-lang", languageCode);
+      localStorage.setItem("uiineed-todos-lang", "en");
       const userLanguage = localStorage.getItem("uiineed-todos-lang");
-      if (userLanguage && userLanguage === "zh")
-        window.location.href =
-          window.location.pathname === "/"
-            ? "index-zh.html"
-            : window.location.href.replace("index.html", "index-zh.html");
     </script>
+
     <script>
       const nativeAlert = window.alert;
       window.alert = function (message, title = "Prompt") {
@@ -42,7 +35,7 @@
 <div class="custom-alert-buttons">
         <button class="custom-alert-btn confirm">OK</button>
 </div>
-                    `;
+      `;
           overlay.appendChild(alertBox);
           document.body.appendChild(overlay);
           const confirmBtn = alertBox.querySelector(".confirm");
@@ -59,6 +52,7 @@
           confirmBtn.focus();
         });
       };
+
       const nativeConfirm = window.alert;
       window.confirm = function (message, title = "Please Confirm") {
         return new Promise((resolve) => {
@@ -73,7 +67,7 @@
         <button class="custom-alert-btn cancel">Cancel</button>
         <button class="custom-alert-btn confirm">OK</button>
 </div>
-                    `;
+      `;
           overlay.appendChild(alertBox);
           document.body.appendChild(overlay);
           const confirmBtn = alertBox.querySelector(".confirm");
@@ -99,6 +93,7 @@
         });
       };
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="public/js/vue.js"></script>
     <script src="public/js/config.js"></script>
@@ -430,6 +425,17 @@
                   />
                 </li>
               </ul>
+
+              <ul class="todo-func-list batch">
+                <li>
+                  <input
+                    type="button"
+                    value="Sequence Task"
+                    class="btn-small action-import"
+                    id="sequence-task-btn"
+                  />
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -542,7 +548,7 @@
     </script>
 
     <script>
-      const sound = new Audio('/public/sound/confetti.mp3');
+      const sound = new Audio("/public/sound/confetti.mp3");
       var app = new Vue({
         el: "#todo-app",
 
@@ -683,9 +689,8 @@
               ).length;
 
               await this.loadTodos();
-              
+
               this.celebrateCompletion();
-              
             } catch (error) {
               await alert(
                 "Failed to mark as completed: " + error.message,
@@ -1212,6 +1217,214 @@
           });
         }
       });
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const seqBtn = document.getElementById("sequence-task-btn");
+        if (!seqBtn) return;
+
+        seqBtn.addEventListener("click", openSequenceDialog);
+      });
+
+      function openSequenceDialog() {
+        const overlay = document.createElement("div");
+        overlay.className = "custom-alert-overlay";
+
+        const box = document.createElement("div");
+        box.className = "custom-alert";
+
+        box.innerHTML = `
+      <div class="custom-alert-title" style="text-align:center">Sequence Task</div>
+      <div class="custom-alert-content" style="text-align:left">
+
+        <div style="margin-bottom:10px">
+          <label style="margin-right:16px; cursor:pointer">
+            <input type="radio" name="seq-position" value="prefix" id="seq-prefix" />
+            Prefix &nbsp;<span style="opacity:.6;font-size:.85em">(x+Task)</span>
+          </label>
+          <label style="cursor:pointer">
+            <input type="radio" name="seq-position" value="suffix" id="seq-suffix" checked />
+            Suffix &nbsp;<span style="opacity:.6;font-size:.85em">(Task+x)</span>
+          </label>
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:4px;font-weight:600">Task Name</label>
+          <input
+            id="seq-task-name"
+            type="text"
+            placeholder="e.g. Finish part 3."
+            style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px"
+          />
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:8px">
+          <div style="flex:1">
+            <label style="display:block;margin-bottom:4px;font-weight:600">From</label>
+            <input
+              id="seq-from"
+              type="number"
+              value="1"
+              style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px"
+            />
+          </div>
+          <div style="flex:1">
+            <label style="display:block;margin-bottom:4px;font-weight:600">To</label>
+            <input
+              id="seq-to"
+              type="number"
+              value="5"
+              style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px"
+            />
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:4px;font-weight:600">
+            Preview
+          </label>
+          <input
+            id="seq-preview"
+            type="text"
+            disabled
+            style="
+              width:100%;box-sizing:border-box;padding:6px 8px;
+              border:1px solid #ddd;border-radius:4px;font-size:14px;
+              background:#f3f3f3;color:#888;cursor:not-allowed
+            "
+          />
+          <label style="display:block;margin-bottom:4px;font-weight:600">To</label>
+          <input
+            id="seq-preview-end"
+            type="text"
+            disabled
+            style="
+              width:100%;box-sizing:border-box;padding:6px 8px;
+              border:1px solid #ddd;border-radius:4px;font-size:14px;
+              background:#f3f3f3;color:#888;cursor:not-allowed
+            "
+          />
+        </div>
+
+        <div
+          id="seq-error"
+          style="color:#e53935;font-size:.85em;min-height:18px;margin-top:2px"
+        ></div>
+
+      </div>
+
+      <div class="custom-alert-buttons">
+        <button class="custom-alert-btn cancel" id="seq-cancel">Cancel</button>
+        <button class="custom-alert-btn confirm" id="seq-create">Create</button>
+      </div>
+    `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        const nameInput = box.querySelector("#seq-task-name");
+        const fromInput = box.querySelector("#seq-from");
+        const toInput = box.querySelector("#seq-to");
+        const preview = box.querySelector("#seq-preview");
+        const previewEnd = box.querySelector("#seq-preview-end");
+        const errorEl = box.querySelector("#seq-error");
+        const cancelBtn = box.querySelector("#seq-cancel");
+        const createBtn = box.querySelector("#seq-create");
+        const radios = box.querySelectorAll("input[name='seq-position']");
+
+        function updatePreview() {
+          const name = nameInput.value.trim();
+          const from = parseInt(fromInput.value, 10);
+          const to = parseInt(toInput.value, 10);
+          const isSuffix = box.querySelector("#seq-suffix").checked;
+
+          if (!name || isNaN(from)) {
+            preview.value = "";
+            previewEnd.value = "";
+            return;
+          }
+          preview.value = isSuffix ? `${name}${from}` : `${from}${name}`;
+
+          if (!isNaN(to)) {
+            previewEnd.value = isSuffix ? `${name}${to}` : `${to}${name}`;
+          } else {
+            previewEnd.value = "";
+          }
+        }
+
+        [nameInput, fromInput, toInput].forEach((el) =>
+          el.addEventListener("input", updatePreview),
+        );
+        radios.forEach((r) => r.addEventListener("change", updatePreview));
+
+        updatePreview();
+
+        function validate() {
+          const name = nameInput.value.trim();
+          const from = parseInt(fromInput.value, 10);
+          const to = parseInt(toInput.value, 10);
+
+          if (!name) {
+            errorEl.textContent = "⚠ Task Name must not be empty.";
+            return false;
+          }
+          if (isNaN(from) || isNaN(to)) {
+            errorEl.textContent = "⚠ From and To must be valid integers.";
+            return false;
+          }
+          if (from > to) {
+            errorEl.textContent = "⚠ From must be ≤ To.";
+            return false;
+          }
+          errorEl.textContent = "";
+          return true;
+        }
+
+        function closeDialog() {
+          box.style.animation = "popOut 0.3s forwards";
+          setTimeout(() => document.body.removeChild(overlay), 300);
+        }
+
+        cancelBtn.addEventListener("click", closeDialog);
+
+        overlay.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeDialog();
+        });
+
+        createBtn.addEventListener("click", async () => {
+          if (!validate()) return;
+
+          const name = nameInput.value.trim();
+          const from = parseInt(fromInput.value, 10);
+          const to = parseInt(toInput.value, 10);
+          const isSuffix = box.querySelector("#seq-suffix").checked;
+
+          createBtn.disabled = true;
+          cancelBtn.disabled = true;
+          createBtn.textContent = "Creating…";
+          errorEl.style.color = "#1976d2";
+          errorEl.textContent = `Creating ${to - from + 1} task(s)…`;
+
+          try {
+            for (let i = from; i <= to; i++) {
+              const title = isSuffix ? `${name}${i}` : `${i}${name}`;
+              await ApiService.createTask(title);
+            }
+
+            await app.loadTodos();
+            closeDialog();
+          } catch (err) {
+            createBtn.disabled = false;
+            cancelBtn.disabled = false;
+            createBtn.textContent = "Create";
+            errorEl.style.color = "#e53935";
+            errorEl.textContent = "⚠ Error: " + err.message;
+          }
+        });
+
+        nameInput.focus();
+      }
     </script>
   </body>
 </html>
