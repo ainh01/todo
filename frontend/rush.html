@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RUSH Mode - Focused Productivity Session</title>
+    <meta
+      name="keywords"
+      content="rush mode, focused work session, productivity timer, gamified todo, time pressure tasks"
+    />
+    <meta
+      name="description"
+      content="RUSH mode transforms your todo experience into a focused, time-pressured productivity session designed to overcome procrastination through gamification."
+    />
+    <link type="favicon" rel="shortcut icon" href="public/img/favicon.png" />
+    <link href="public/css/normalize.css" rel="stylesheet" media="screen" />
+    <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="public/js/vue.js"></script>
+    <style>
+      :root {
+        --rush-red: #dc2626;
+        --rush-red-light: #fef2f2;
+        --rush-red-dark: #991b1b;
+        --rush-green: #16a34a;
+        --rush-orange: #ea580c;
+      }
+
+      .rush-mode {
+        background: linear-gradient(
+          135deg,
+          var(--rush-red-light),
+          var(--body-bg)
+        );
+      }
+
+      .timer-display {
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        font-size: 18px;
+        padding: 8px 16px;
+        border: 2px solid var(--rush-red);
+        border-radius: var(--border-radius);
+        background: white;
+        color: var(--rush-red);
+        text-align: center;
+        min-width: 100px;
+      }
+
+      .timer-negative {
+        background: var(--rush-red);
+        color: white;
+        animation: pulse 1s infinite;
+      }
+
+      .timer-completion {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .timer-completion.completed {
+        text-decoration: none !important;
+      }
+
+      .timer-early {
+        background: var(--rush-green);
+        color: white;
+      }
+
+      .timer-late {
+        background: var(--rush-red);
+        color: white;
+      }
+
+      .session-controls {
+        display: flex;
+        gap: 12px;
+        margin: 16px 0;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .rush-btn {
+        margin-top: 10px;
+        padding: 12px 24px;
+        border: 2px solid var(--rush-red);
+        border-radius: var(--border-radius);
+        background: white;
+        color: var(--rush-red);
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .rush-btn:hover {
+        background: var(--rush-red);
+        color: white;
+        transform: translate(-2px, -2px);
+        box-shadow: 4px 4px 0px var(--rush-red-dark);
+      }
+
+      .rush-btn-primary {
+        background: var(--rush-red);
+        color: white;
+      }
+
+      .rush-btn-primary:hover {
+        background: var(--rush-red-dark);
+        box-shadow: 4px 4px 0px var(--black);
+      }
+
+      .hardness-input {
+        width: 80px;
+        margin-left: 8px;
+        text-align: center;
+      }
+
+      .rating-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      }
+
+      .rating-content {
+        background: white;
+        padding: 32px;
+        border-radius: var(--border-radius);
+        border: var(--border);
+        box-shadow: var(--box-shadow);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+      }
+
+      .rating-grade {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 16px 0;
+      }
+
+      .rating-sss {
+        color: #a75cf6;
+      }
+      .rating-ss {
+        color: #f0f63b;
+      }
+      .rating-s {
+        color: var(--rush-green);
+      }
+      .rating-a {
+        color: var(--rush-orange);
+      }
+      .rating-f {
+        color: var(--rush-red);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      .rush-task-item {
+        position: relative;
+        cursor: grab;
+      }
+
+      .rush-task-item:active {
+        cursor: grabbing;
+      }
+
+      .rush-task-item.active {
+        border-color: var(--rush-red);
+        box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+      }
+
+      .rush-task-item.drag-over {
+        border-top: 3px solid var(--rush-red);
+      }
+
+      .task-timer {
+        position: absolute;
+        top: 16px;
+        right: 96px;
+      }
+
+      .task-allocated-timer {
+        position: absolute;
+        top: 19px;
+        right: 50px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        color: var(--rush-red);
+        font-weight: bold;
+        background: rgba(220, 38, 38, 0.1);
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .ttc-input {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        margin: 16px 0;
+      }
+
+      .ttc-input input {
+        width: 120px;
+        text-align: center;
+      }
+
+      .task-edit-input {
+        background: var(--bg-edit);
+        border: 2px solid var(--rush-red);
+        padding: var(--padding);
+        width: 100%;
+        border-radius: var(--border-radius);
+        font-size: 16px;
+        outline: none;
+      }
+
+      .hl-edit-input {
+        width: 60px;
+        text-align: center;
+        margin-left: 8px;
+        padding: 4px;
+        border: 1px solid var(--rush-red);
+        border-radius: 4px;
+      }
+
+      .task-controls {
+        position: absolute;
+        top: 16px;
+        right: 12px;
+        display: flex;
+        gap: 4px;
+      }
+
+      .task-control-btn {
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--rush-red);
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--rush-red);
+        transition: all 0.2s;
+      }
+
+      .task-control-btn:hover {
+        background: var(--rush-red);
+        color: white;
+      }
+
+      .completed .todo-content {
+        text-decoration: line-through;
+        opacity: 0.7;
+      }
+
+      .completed .timer-completion {
+        text-decoration: none !important;
+      }
+    </style>
+  </head>
+
+  <body class="rush-mode">
+    <div class="bg-pattern"></div>
+    <div class="todo-wrapper">
+      <div id="rush-app" class="todo-app"></div>
+    </div>
+
+    <script type="module">
+      import { ApiService } from "./public/js/modules/apiService.js";
+      import { DialogUtils } from "./public/js/modules/dialogUtils.js";
+      import { authGuard } from "./public/js/modules/authGuard.js";
+
+      authGuard();
+
+      const RushApp = {
+        name: "RushApp",
+
+        template: `
+          <div>
+            <div class="container header">
+              <div class="todo-input">
+                <h1 class="title" style="color: var(--rush-red);">
+                  🚀 RUSH MODE
+                </h1>
+                
+                <div class="ttc-input">
+                  <label><strong>Total Time (minutes):</strong></label>
+                  <input 
+                    type="number" 
+                    v-model.number="totalTimeMinutes"
+                    :disabled="sessionActive"
+                    min="1"
+                    placeholder="60"
+                    @input="recalculateAllocatedTimes"
+                  />
+                </div>
+                
+                <div class="add-content-wrapper">
+                  <input
+                    type="text"
+                    class="add-content"
+                    placeholder="Add a rush task..."
+                    v-model="newTaskTitle"
+                    @keyup.enter="addTask"
+                    :disabled="sessionActive"
+                    style="padding-right: 200px;"
+                  />
+                  
+                  <label style="position: absolute; right: 130px; top: 50%; transform: translateY(-50%); font-weight: bold;">
+                    HL:
+                    <input
+                      type="number"
+                      v-model.number="newTaskHL"
+                      min="1"
+                      max="10"
+                      class="hardness-input"
+                      :disabled="sessionActive"
+                    />
+                  </label>
+                  
+                  <button 
+                    class="btn submit-btn" 
+                    type="button" 
+                    @click="addTask"
+                    :disabled="sessionActive"
+                    style="background: var(--rush-red);"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="session-controls">
+              <button 
+                class="rush-btn rush-btn-primary"
+                @click="toggleSession"
+                :disabled="tasks.length === 0"
+              >
+                {{ sessionActive ? 'PAUSE' : (sessionPaused ? 'RESUME' : 'START RUSH') }}
+              </button>
+              
+              <button 
+                class="rush-btn"
+                @click="endSession"
+                :disabled="!sessionActive && !sessionPaused"
+              >
+                End Session
+              </button>
+              
+              <button 
+                class="rush-btn"
+                @click="clearAll"
+                style="border-color: var(--rush-orange); color: var(--rush-orange);"
+              >
+                Clear All
+              </button>
+            </div>
+
+            <div class="container main">
+              <div class="todo-list-box">
+                <div class="bar-message" style="border-color: var(--rush-red);">
+                  <div class="bar-message-text" style="color: var(--rush-red); font-weight: bold;">
+                    {{ statusMessage }}
+                  </div>
+                </div>
+
+                <ul v-if="!tasks.length" class="empty-tips">
+                  <li>🚀 Add tasks with difficulty levels (HL) to start your RUSH session!</li>
+                  <li>⚡ Higher HL = More time allocated</li>
+                  <li>🎯 Beat the clock for better ratings!</li>
+                  <li>⏰ Time rolls over when you finish early</li>
+                  <li>✏️ Double-click task titles to edit, drag to reorder</li>
+                </ul>
+
+                <ul class="todo-list">
+                  <li 
+                    v-for="(task, index) in tasks" 
+                    :key="task.id"
+                    class="rush-task-item"
+                    :class="{ 
+                      active: currentTaskIndex === index && sessionActive,
+                      completed: task.completed,
+                      'drag-over': dragOverIndex === index
+                    }"
+                    draggable="true"
+                    @dragstart="handleDragStart(index, $event)"
+                    @dragover="handleDragOver(index, $event)"
+                    @dragleave="handleDragLeave"
+                    @drop="handleDrop(index, $event)"
+                  >
+                    <div v-if="editingTask === task.id" class="todo-content">
+                      <input 
+                        v-model="task.title"
+                        autocomplete="off"
+                        @keyup.enter="saveEdit(task)"
+                        @keyup.esc="cancelEdit"
+                        class="task-edit-input"
+                        ref="editInput"
+                      />
+                      <label style="margin-left: 16px; font-weight: bold;">
+                        HL:
+                        <input
+                          v-model.number="task.hl"
+                          type="number"
+                          min="1"
+                          max="10"
+                          class="hl-edit-input"
+                          @change="recalculateAllocatedTimes"
+                        />
+                      </label>
+                    </div>
+                    
+                    <div v-else class="todo-content" 
+                         :class="{ completed: task.completed }"
+                         @dblclick="startEdit(task)">
+                      {{ task.title }} (HL: {{ task.hl }})
+                      
+                      <div v-if="task.completed" class="timer-completion completed" :class="{
+                        'timer-early': task.actualTime < task.allocatedTime * 1000,
+                        'timer-late': task.actualTime > task.allocatedTime * 1000
+                      }">
+                        {{ task.actualTime < task.allocatedTime * 1000 ? '-' : '+' }}{{ formatTime(Math.abs(task.actualTime - task.allocatedTime * 1000)) }}
+                      </div>
+                    </div>
+                    
+                    <div 
+                      v-if="!sessionActive && !task.completed"
+                      class="task-allocated-timer"
+                    >
+                      {{ formatTime(task.allocatedTime * 1000) }}
+                    </div>
+                    
+                    <div 
+                      v-if="currentTaskIndex === index && sessionActive"
+                      class="timer-display task-timer"
+                      :class="{ 'timer-negative': currentTaskTimeLeft < 0 }"
+                    >
+                      {{ formatTime(currentTaskTimeLeft) }}
+                    </div>
+
+                    <div class="task-controls"> 
+                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive" > 
+                      <img src="public/img/delete.svg" alt="Delete" draggable="false">
+                      </div> 
+                    </div>
+                    
+                    <div
+                      class="todo-btn btn-finish"
+                      v-if="!task.completed && (sessionActive || sessionPaused)"
+                      @click="completeTask(index)"
+                    ></div>
+                    
+                    <div
+                      class="todo-btn btn-unfinish"
+                      v-if="task.completed && (sessionActive || sessionPaused)"
+                      @click="uncompleteTask(index)"
+                    >
+                      <img src="public/img/complete.svg" alt="Completed" />
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div v-if="showRatingModal" class="rating-modal" @click="closeRatingModal">
+              <div class="rating-content" @click.stop>
+                <h2>Session Complete!</h2>
+                <div class="rating-grade" :class="'rating-' + finalRating.toLowerCase()">
+                  {{ finalRating }}
+                </div>
+                <p><strong>Actual Time:</strong> {{ formatTime(actualCompletionTime) }}</p>
+                <p><strong>Target Time:</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>
+                <p><strong>Tasks Completed:</strong> {{ completedTasksCount }} / {{ totalTasksCount }}</p>
+                <button class="rush-btn rush-btn-primary" @click="closeRatingModal">
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div class="nav">
+              <span>{{ userEmail }}</span>
+              <button class="rush-btn" @click="goBack" style="margin-left: 12px;">
+                ← Back to Todo
+              </button>
+            </div>
+          </div>
+        `,
+
+        data() {
+          return {
+            tasks: [],
+            newTaskTitle: "",
+            newTaskHL: 1,
+            totalTimeMinutes: 60,
+            sessionActive: false,
+            sessionPaused: false,
+            sessionStartTime: null,
+            pausedTime: 0,
+            currentTaskIndex: 0,
+            currentTaskStartTime: null,
+            currentTaskTimeLeft: 0,
+            intervalId: null,
+            showRatingModal: false,
+            finalRating: "",
+            actualCompletionTime: 0,
+            userEmail: localStorage.getItem("user_email") || "",
+            editingTask: null,
+            originalTaskData: null,
+            draggedIndex: null,
+            dragOverIndex: null,
+            sound: new Audio("/public/sound/confetti.mp3"),
+            confettiColors: [
+              "#a864fd",
+              "#29cdff",
+              "#78ff44",
+              "#ff718d",
+              "#fdff6a",
+            ],
+          };
+        },
+
+        computed: {
+          totalTimeSeconds() {
+            return this.totalTimeMinutes * 60;
+          },
+
+          totalHL() {
+            return this.tasks.reduce((sum, task) => sum + task.hl, 0);
+          },
+
+          statusMessage() {
+            if (this.sessionActive) {
+              const current = this.tasks[this.currentTaskIndex];
+              return current
+                ? `Working on: ${current.title}`
+                : "All tasks completed!";
+            } else if (this.sessionPaused) {
+              return "Session paused - Click RESUME to continue";
+            } else if (this.tasks.length === 0) {
+              return "Add tasks to start your RUSH session";
+            } else {
+              const totalAllocated = this.tasks.reduce(
+                (sum, t) => sum + t.allocatedTime,
+                0,
+              );
+              return `${this.tasks.length} tasks ready (${this.formatTime(totalAllocated * 1000)} total) - Click START RUSH to begin`;
+            }
+          },
+
+          completedTasksCount() {
+            return this.tasks.filter((t) => t.completed).length;
+          },
+
+          totalTasksCount() {
+            return this.tasks.length;
+          },
+        },
+
+        methods: {
+          addTask() {
+            if (!this.newTaskTitle.trim()) return;
+
+            const task = {
+              id: Date.now(),
+              title: this.newTaskTitle.trim(),
+              hl: this.newTaskHL,
+              completed: false,
+              allocatedTime: 0,
+              actualTime: 0,
+              startTime: null,
+            };
+
+            this.tasks.push(task);
+            this.recalculateAllocatedTimes();
+
+            this.newTaskTitle = "";
+            this.newTaskHL = 1;
+          },
+
+          recalculateAllocatedTimes() {
+            const totalHL = this.totalHL;
+            if (totalHL === 0) return;
+
+            let remainingTime = this.totalTimeSeconds;
+            const timePerHL = this.totalTimeSeconds / totalHL;
+
+            for (let i = 0; i < this.tasks.length - 1; i++) {
+              const task = this.tasks[i];
+              task.allocatedTime = Math.floor(timePerHL * task.hl);
+              remainingTime -= task.allocatedTime;
+            }
+            if (this.tasks.length > 0) {
+              this.tasks[this.tasks.length - 1].allocatedTime = Math.max(
+                0,
+                remainingTime,
+              );
+            }
+          },
+
+          removeTask(index) {
+            this.tasks.splice(index, 1);
+            this.recalculateAllocatedTimes();
+
+            if (index <= this.currentTaskIndex && this.currentTaskIndex > 0) {
+              this.currentTaskIndex--;
+            }
+          },
+
+          startEdit(task) {
+            this.editingTask = task.id;
+            this.originalTaskData = {
+              title: task.title,
+              hl: task.hl,
+            };
+
+            this.$nextTick(() => {
+              const input = this.$refs.editInput && this.$refs.editInput[0];
+              if (input) {
+                input.focus();
+                input.select();
+              }
+            });
+          },
+
+          saveEdit(task) {
+            this.editingTask = null;
+            this.originalTaskData = null;
+            this.recalculateAllocatedTimes();
+          },
+
+          cancelEdit() {
+            if (this.editingTask && this.originalTaskData) {
+              const task = this.tasks.find((t) => t.id === this.editingTask);
+              if (task) {
+                task.title = this.originalTaskData.title;
+                task.hl = this.originalTaskData.hl;
+              }
+            }
+            this.editingTask = null;
+            this.originalTaskData = null;
+            this.recalculateAllocatedTimes();
+          },
+
+          handleDragStart(index, event) {
+            this.draggedIndex = index;
+            event.dataTransfer.setData("text/plain", index.toString());
+            event.dataTransfer.effectAllowed = "move";
+          },
+
+          handleDragOver(index, event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            this.dragOverIndex = index;
+          },
+
+          handleDragLeave() {
+            this.dragOverIndex = null;
+          },
+
+          handleDrop(index, event) {
+            event.preventDefault();
+            this.dragOverIndex = null;
+
+            if (this.draggedIndex !== null && this.draggedIndex !== index) {
+              const draggedTask = this.tasks.splice(this.draggedIndex, 1)[0];
+              this.tasks.splice(index, 0, draggedTask);
+
+              if (this.currentTaskIndex === this.draggedIndex) {
+                this.currentTaskIndex = index;
+              } else if (
+                this.draggedIndex < this.currentTaskIndex &&
+                index >= this.currentTaskIndex
+              ) {
+                this.currentTaskIndex--;
+              } else if (
+                this.draggedIndex > this.currentTaskIndex &&
+                index <= this.currentTaskIndex
+              ) {
+                this.currentTaskIndex++;
+              }
+            }
+
+            this.draggedIndex = null;
+          },
+
+          celebrateCompletion() {
+            try {
+              this.sound.currentTime = 0;
+              this.sound
+                .play()
+                .catch((e) => console.log("Sound play failed:", e));
+            } catch (e) {
+              console.log("Sound initialization failed:", e);
+            }
+
+            if (typeof confetti !== "undefined") {
+              confetti({
+                particleCount: 350,
+                startVelocity: 88,
+                drift: 0.3,
+                angle: 45,
+                spread: 70,
+                origin: { x: 0.0, y: 1.0 },
+                colors: this.confettiColors,
+              });
+              confetti({
+                particleCount: 350,
+                startVelocity: 88,
+                drift: 0.3,
+                angle: 135,
+                spread: 70,
+                origin: { x: 1.0, y: 1.0 },
+                colors: this.confettiColors,
+              });
+            }
+          },
+
+          toggleSession() {
+            if (!this.sessionActive && !this.sessionPaused) {
+              this.startSession();
+            } else if (this.sessionActive) {
+              this.pauseSession();
+            } else if (this.sessionPaused) {
+              this.resumeSession();
+            }
+          },
+
+          startSession() {
+            this.recalculateAllocatedTimes();
+            this.sessionActive = true;
+            this.sessionPaused = false;
+            this.sessionStartTime = Date.now();
+            this.currentTaskIndex = this.findNextIncompleteTask();
+
+            if (this.currentTaskIndex !== -1) {
+              this.startCurrentTask();
+              this.startTimer();
+            } else {
+              this.endSession();
+            }
+          },
+
+          pauseSession() {
+            this.sessionActive = false;
+            this.sessionPaused = true;
+            this.pausedTime += Date.now() - this.sessionStartTime;
+            this.stopTimer();
+          },
+
+          resumeSession() {
+            this.sessionActive = true;
+            this.sessionPaused = false;
+            this.sessionStartTime = Date.now();
+            this.startTimer();
+          },
+
+          endSession() {
+            this.sessionActive = false;
+            this.sessionPaused = false;
+            this.stopTimer();
+
+            this.actualCompletionTime =
+              this.pausedTime +
+              (Date.now() - (this.sessionStartTime || Date.now()));
+            this.calculateFinalRating();
+            this.showRatingModal = true;
+
+            this.resetSession();
+          },
+
+          resetSession() {
+            this.currentTaskIndex = 0;
+            this.pausedTime = 0;
+            this.sessionStartTime = null;
+            this.currentTaskStartTime = null;
+          },
+
+          findNextIncompleteTask() {
+            for (let i = 0; i < this.tasks.length; i++) {
+              if (!this.tasks[i].completed) {
+                return i;
+              }
+            }
+            return -1;
+          },
+
+          startCurrentTask() {
+            if (
+              this.currentTaskIndex >= 0 &&
+              this.currentTaskIndex < this.tasks.length
+            ) {
+              const task = this.tasks[this.currentTaskIndex];
+              task.startTime = Date.now();
+
+              let rolloverTime = 0;
+              for (let i = 0; i < this.currentTaskIndex; i++) {
+                const prevTask = this.tasks[i];
+                if (
+                  prevTask.completed &&
+                  prevTask.actualTime < prevTask.allocatedTime * 1000
+                ) {
+                  rolloverTime +=
+                    prevTask.allocatedTime * 1000 - prevTask.actualTime;
+                }
+              }
+
+              this.currentTaskTimeLeft =
+                task.allocatedTime * 1000 + rolloverTime;
+            }
+          },
+
+          startTimer() {
+            this.intervalId = setInterval(() => {
+              if (
+                this.currentTaskIndex >= 0 &&
+                this.currentTaskIndex < this.tasks.length
+              ) {
+                const task = this.tasks[this.currentTaskIndex];
+                const elapsed = Date.now() - task.startTime;
+
+                let rolloverTime = 0;
+                for (let i = 0; i < this.currentTaskIndex; i++) {
+                  const prevTask = this.tasks[i];
+                  if (
+                    prevTask.completed &&
+                    prevTask.actualTime < prevTask.allocatedTime * 1000
+                  ) {
+                    rolloverTime +=
+                      prevTask.allocatedTime * 1000 - prevTask.actualTime;
+                  }
+                }
+
+                this.currentTaskTimeLeft =
+                  task.allocatedTime * 1000 + rolloverTime - elapsed;
+              }
+            }, 10);
+          },
+
+          stopTimer() {
+            if (this.intervalId) {
+              clearInterval(this.intervalId);
+              this.intervalId = null;
+            }
+          },
+
+          completeTask(index) {
+            if (!this.sessionActive) return;
+
+            const task = this.tasks[index];
+            if (task.completed) return;
+
+            task.completed = true;
+            task.actualTime = task.startTime ? Date.now() - task.startTime : 0;
+
+            this.celebrateCompletion();
+
+            this.currentTaskIndex = this.findNextIncompleteTask();
+
+            if (this.currentTaskIndex !== -1 && this.sessionActive) {
+              this.startCurrentTask();
+            } else {
+              this.endSession();
+            }
+          },
+
+          uncompleteTask(index) {
+            const task = this.tasks[index];
+            task.completed = false;
+            task.actualTime = 0;
+            task.startTime = null;
+
+            if (index < this.currentTaskIndex) {
+              this.currentTaskIndex = index;
+              if (this.sessionActive) {
+                this.startCurrentTask();
+              }
+            }
+          },
+
+          calculateFinalRating() {
+            const completionRatio =
+              this.actualCompletionTime / (this.totalTimeSeconds * 1000);
+
+            if (
+              !this.sessionActive &&
+              !this.sessionPaused &&
+              this.completedTasksCount < this.totalTasksCount
+            ) {
+              this.finalRating = "F";
+            } else if (completionRatio <= 0.6) {
+              this.finalRating = "SSS";
+            } else if (completionRatio <= 0.8) {
+              this.finalRating = "SS";
+            } else if (completionRatio < 1.0) {
+              this.finalRating = "S";
+            } else {
+              this.finalRating = "A";
+            }
+          },
+
+          clearAll() {
+            if (this.sessionActive || this.sessionPaused) {
+              DialogUtils.confirm(
+                "This will end your current session. Continue?",
+              ).then((confirmed) => {
+                if (confirmed) {
+                  this.endSession();
+                  this.tasks = [];
+                }
+              });
+            } else {
+              this.tasks = [];
+            }
+          },
+
+          formatTime(milliseconds) {
+            const totalMs = Math.abs(Math.floor(milliseconds || 0));
+            const hrs = Math.floor(totalMs / 3600000);
+            const mins = Math.floor((totalMs % 3600000) / 60000);
+            const secs = Math.floor((totalMs % 60000) / 1000);
+            const cs = Math.floor((totalMs % 1000) / 10);
+            if (hrs > 0) {
+              return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}:${cs.toString().padStart(2, "0")}`;
+            } else if (mins > 0) {
+              return `${mins}:${secs.toString().padStart(2, "0")}:${cs.toString().padStart(2, "0")}`;
+            } else {
+              return `${secs}:${cs.toString().padStart(2, "0")}`;
+            }
+          },
+
+          closeRatingModal() {
+            this.showRatingModal = false;
+          },
+
+          goBack() {
+            window.location.href = "index.html";
+          },
+        },
+
+        beforeDestroy() {
+          this.stopTimer();
+        },
+      };
+
+      const app = new Vue({
+        el: "#rush-app",
+        render: (h) => h(RushApp),
+      });
+    </script>
+  </body>
+</html>

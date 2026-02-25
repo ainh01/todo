@@ -46,6 +46,7 @@
         border-left: none;
       }
     </style>
+  
   </head>
   <body>
     <div class="bg-pattern"></div>
@@ -62,8 +63,10 @@
       </div>
     </div>
 
-    <script src="public/js/config.js"></script>
-    <script>
+    <!-- <script src="public/js/config.js"></script> -->
+     <!-- <script type="module" src="public/js/config.js"></script> -->
+    <script type="module">
+      import { API_CONFIG } from './public/js/config.js';
       document
         .getElementById("loginForm")
         .addEventListener("submit", async (e) => {
