@@ -192,6 +192,10 @@
         border-top: 3px solid var(--rush-red);
       }
 
+      .rush-task-item.completed {
+        text-decoration: none !important;
+      }
+
       .task-timer {
         position: absolute;
         top: 16px;
@@ -440,7 +444,8 @@
                     <div v-else class="todo-content" 
                          :class="{ completed: task.completed }"
                          @dblclick="startEdit(task)">
-                      {{ task.title }} (HL: {{ task.hl }})
+                         <label style="text-decoration:line-through">
+                      {{ task.title }} (HL: {{ task.hl }}) </label>
                       
                       <div v-if="task.completed" class="timer-completion completed" :class="{
                         'timer-early': task.actualTime < task.allocatedTime * 1000,
