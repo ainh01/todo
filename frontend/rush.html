@@ -442,10 +442,12 @@
                     </div>
                     
                     <div v-else class="todo-content" 
-                         :class="{ completed: task.completed }"
-                         @dblclick="startEdit(task)">
-                         <label style="text-decoration:line-through">
-                      {{ task.title }} (HL: {{ task.hl }}) </label>
+                        :class="{ completed: task.completed }"
+                        @dblclick="startEdit(task)">
+                        
+                      <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }">
+                        {{ task.title }} (HL: {{ task.hl }})
+                      </label>
                       
                       <div v-if="task.completed" class="timer-completion completed" :class="{
                         'timer-early': task.actualTime < task.allocatedTime * 1000,
