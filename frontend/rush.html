@@ -19,6 +19,18 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="public/js/vue.js"></script>
     <style>
+      @font-face {
+        font-family: 'Achievement';
+        src: url('/public/font/achievement.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      .special-text {
+        font-family: 'Achievement', sans-serif;
+      }
+
+
       :root {
         --rush-red: #dc2626;
         --rush-red-light: #fef2f2;
@@ -146,10 +158,11 @@
         font-size: 48px;
         font-weight: bold;
         margin: 16px 0;
+        font-family: 'Achievement', sans-serif;
       }
 
       .rating-sss {
-        color: #a75cf6;
+        color: #ac5cf6;
       }
       .rating-ss {
         color: #f0f63b;
@@ -229,7 +242,7 @@
       }
 
       .task-edit-input {
-        background: var(--bg-edit);
+        background: var(#d0f4f0);
         border: 2px solid var(--rush-red);
         padding: var(--padding);
         width: 100%;
@@ -322,6 +335,7 @@
                     min="1"
                     placeholder="60"
                     @input="recalculateAllocatedTimes"
+                    autocomplete="off"
                   />
                 </div>
                 
@@ -334,9 +348,10 @@
                     @keyup.enter="addTask"
                     :disabled="sessionActive"
                     style="padding-right: 200px;"
+                    autocomplete="off"
                   />
                   
-                  <label style="position: absolute; right: 130px; top: 50%; transform: translateY(-50%); font-weight: bold;">
+                  <label style="position: absolute; right: 130px; top: 60%; transform: translateY(-60%); font-weight: bold;">
                     HL:
                     <input
                       type="number"
@@ -345,6 +360,7 @@
                       max="10"
                       class="hardness-input"
                       :disabled="sessionActive"
+                      autocomplete="off"
                     />
                   </label>
                   
@@ -437,26 +453,34 @@
                           max="10"
                           class="hl-edit-input"
                           @change="recalculateAllocatedTimes"
+                          autocomplete="off"
                         />
                       </label>
                     </div>
                     
-                    <div v-else class="todo-content" 
+                    <div v-else 
+                        class="todo-content" 
                         :class="{ completed: task.completed }"
-                        @dblclick="startEdit(task)">
-                        
+                        @dblclick="startEdit(task)"
+                        >
+                      
                       <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }">
                         {{ task.title }} (HL: {{ task.hl }})
                       </label>
                       
-                      <div v-if="task.completed" class="timer-completion completed" :class="{
-                        'timer-early': task.actualTime < task.allocatedTime * 1000,
-                        'timer-late': task.actualTime > task.allocatedTime * 1000
-                      }">
-                        {{ task.actualTime < task.allocatedTime * 1000 ? '-' : '+' }}{{ formatTime(Math.abs(task.actualTime - task.allocatedTime * 1000)) }}
+                      <div v-if="task.completed" 
+                          class="timer-completion completed" 
+                          :class="{
+                            'timer-early': task.cumulativeTime > 0,
+                            'timer-late': task.cumulativeTime < 0
+                          }"
+                          style="width: 110px"
+                          >
+                        {{ task.cumulativeTime > 0 ? '-' : '+' }}
+                        {{ formatTime(Math.abs(task.cumulativeTime)) }}
                       </div>
                     </div>
-                    
+
                     <div 
                       v-if="!sessionActive && !task.completed"
                       class="task-allocated-timer"
@@ -562,6 +586,20 @@
             return this.tasks.reduce((sum, task) => sum + task.hl, 0);
           },
 
+          getCumulativeTimeAtTask() {
+            return (taskIndex) => {
+              let cumulativeTime = 0;
+              for (let i = 0; i <= taskIndex; i++) {
+                const task = this.tasks[i];
+                if (task.completed) {
+                  const taskSavings = (task.allocatedTime * 1000) - task.actualTime;
+                  cumulativeTime += taskSavings;
+                }
+              }
+              return cumulativeTime;
+            };
+          },
+
           statusMessage() {
             if (this.sessionActive) {
               const current = this.tasks[this.currentTaskIndex];
@@ -602,6 +640,7 @@
               allocatedTime: 0,
               actualTime: 0,
               startTime: null,
+              deadline: 0, // will be calculated
             };
 
             this.tasks.push(task);
@@ -618,6 +657,7 @@
             let remainingTime = this.totalTimeSeconds;
             const timePerHL = this.totalTimeSeconds / totalHL;
 
+            // Calculate allocated times
             for (let i = 0; i < this.tasks.length - 1; i++) {
               const task = this.tasks[i];
               task.allocatedTime = Math.floor(timePerHL * task.hl);
@@ -628,6 +668,13 @@
                 0,
                 remainingTime,
               );
+            }
+
+            // Calculate cumulative deadlines
+            let cumulativeTime = 0;
+            for (let i = 0; i < this.tasks.length; i++) {
+              cumulativeTime += this.tasks[i].allocatedTime;
+              this.tasks[i].deadline = cumulativeTime * 1000; // Store deadline in milliseconds
             }
           },
 
@@ -826,20 +873,9 @@
               const task = this.tasks[this.currentTaskIndex];
               task.startTime = Date.now();
 
-              let rolloverTime = 0;
-              for (let i = 0; i < this.currentTaskIndex; i++) {
-                const prevTask = this.tasks[i];
-                if (
-                  prevTask.completed &&
-                  prevTask.actualTime < prevTask.allocatedTime * 1000
-                ) {
-                  rolloverTime +=
-                    prevTask.allocatedTime * 1000 - prevTask.actualTime;
-                }
-              }
-
-              this.currentTaskTimeLeft =
-                task.allocatedTime * 1000 + rolloverTime;
+              const sessionElapsed =
+                this.pausedTime + (Date.now() - this.sessionStartTime);
+              this.currentTaskTimeLeft = task.deadline - sessionElapsed;
             }
           },
 
@@ -850,22 +886,9 @@
                 this.currentTaskIndex < this.tasks.length
               ) {
                 const task = this.tasks[this.currentTaskIndex];
-                const elapsed = Date.now() - task.startTime;
-
-                let rolloverTime = 0;
-                for (let i = 0; i < this.currentTaskIndex; i++) {
-                  const prevTask = this.tasks[i];
-                  if (
-                    prevTask.completed &&
-                    prevTask.actualTime < prevTask.allocatedTime * 1000
-                  ) {
-                    rolloverTime +=
-                      prevTask.allocatedTime * 1000 - prevTask.actualTime;
-                  }
-                }
-
-                this.currentTaskTimeLeft =
-                  task.allocatedTime * 1000 + rolloverTime - elapsed;
+                const sessionElapsed =
+                  this.pausedTime + (Date.now() - this.sessionStartTime);
+                this.currentTaskTimeLeft = task.deadline - sessionElapsed;
               }
             }, 10);
           },
@@ -885,6 +908,11 @@
 
             task.completed = true;
             task.actualTime = task.startTime ? Date.now() - task.startTime : 0;
+            
+            // Calculate time difference from deadline (positive = early, negative = late)
+            const sessionElapsed =
+              this.pausedTime + (Date.now() - this.sessionStartTime);
+            task.cumulativeTime = task.deadline - sessionElapsed;
 
             this.celebrateCompletion();
 
