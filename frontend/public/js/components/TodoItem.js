@@ -33,6 +33,16 @@ export default {
         class="todo-content"
         :class="{completed: todo.completed}"
         @dblclick="handleEdit"
+        v-html="renderedContent"
+        v-if="!isEditing"
+      >
+      </div>
+      
+      <div
+        class="todo-content"
+        :class="{completed: todo.completed}"
+        @dblclick="handleEdit"
+        v-if="isEditing"
       >
         {{ todo.title }}
       </div>
@@ -54,6 +64,16 @@ export default {
           class="icon-finish"
           draggable="false"
         />
+      </div>
+      
+      <!-- Copy button for hidden prompts -->
+      <div
+        class="todo-btn btn-copy"
+        v-if="hasHiddenPrompt && !isEditing"
+        @click="copyPromptContent"
+        title="Copy hidden prompt"
+      >
+        <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />
       </div>
       
       <div
@@ -93,6 +113,61 @@ export default {
     computed: {
         isEditing() {
             return this.editedTodo !== null && this.editedTodo.id === this.todo.id;
+        },
+
+        hasHiddenPrompt() {
+            return this.todo.title.includes('fPrompt[') && this.todo.title.includes('fPromptEnd]');
+        },
+
+        renderedContent() {
+            let content = this.todo.title;
+
+            // Step 1: Extract and hide prompt content
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            let displayContent = content.replace(promptPattern, '').trim();
+
+            // Step 2: Render mathematics with KaTeX
+            if (window.katex) {
+                try {
+                    // Handle display math $$...$$
+                    displayContent = displayContent.replace(/\$\$([^$]+)\$\$/g, (match, mathContent) => {
+                        try {
+                            return katex.renderToString(mathContent.trim(), {
+                                displayMode: true,
+                                throwOnError: false,
+                                strict: false
+                            });
+                        } catch (e) {
+                            console.warn('KaTeX display math error:', e);
+                            return match;
+                        }
+                    });
+
+                    // Handle inline math $...$
+                    displayContent = displayContent.replace(/\$([^$]+)\$/g, (match, mathContent) => {
+                        try {
+                            return katex.renderToString(mathContent.trim(), {
+                                displayMode: false,
+                                throwOnError: false,
+                                strict: false
+                            });
+                        } catch (e) {
+                            console.warn('KaTeX inline math error:', e);
+                            return match;
+                        }
+                    });
+                } catch (error) {
+                    console.error('KaTeX rendering error:', error);
+                }
+            }
+
+            return displayContent;
+        },
+
+        hiddenPromptContent() {
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            const matches = [...this.todo.title.matchAll(promptPattern)];
+            return matches.map(match => match[1]).join('\n\n');
         }
     },
 
@@ -129,6 +204,49 @@ export default {
         handleDragEnd(event) {
             event.preventDefault();
             this.$emit('drag-end');
+        },
+
+        async copyPromptContent() {
+            if (!this.hasHiddenPrompt) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(this.hiddenPromptContent);
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = this.hiddenPromptContent;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                }
+
+                this.showCopyFeedback();
+            } catch (error) {
+                console.error('Copy failed:', error);
+                alert('Copy failed. Please select and copy manually.');
+            }
+        },
+
+        showCopyFeedback() {
+            const copyBtn = this.$el.querySelector('.btn-copy');
+            if (copyBtn) {
+                const originalTitle = copyBtn.title;
+                copyBtn.title = 'Copied!';
+                copyBtn.style.background = '#16a34a';
+                copyBtn.style.borderColor = '#16a34a';
+
+                setTimeout(() => {
+                    copyBtn.title = originalTitle;
+                    copyBtn.style.background = '';
+                    copyBtn.style.borderColor = '';
+                }, 1000);
+            }
         }
     },
 

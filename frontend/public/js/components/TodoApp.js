@@ -45,18 +45,30 @@ export default {
             <input
               type="text"
               class="add-content"
-              placeholder="Add a to-do item..."
+              placeholder="Add a to-do item... (Prefix with 'VIP' for task decomposition)"
               v-model="newTodoTitle"
               @keyup.enter="addTodo"
               :class="{empty: emptyChecked}"
+              :disabled="isProcessingLongTask"
             />
+
+            <div v-if="isProcessingLongTask" class="vip-processing">
+              <div class="loading-spinner"></div>
+              <span class="processing-text">{{ longTaskMessage }}</span>
+            </div>
+
             <transition name="tips">
               <div class="tips" v-if="emptyChecked" style="color: red">
                 💡Please enter content!
               </div>
             </transition>
-            <button class="btn submit-btn" type="button" @click="addTodo">
-              Add
+            <button
+              class="btn submit-btn"
+              type="button"
+              @click="addTodo"
+              :disabled="isProcessingLongTask"
+            >
+              {{ isProcessingLongTask ? 'Processing...' : 'Add' }}
             </button>
           </div>
         </div>
@@ -168,7 +180,7 @@ export default {
       <div class="nav">
         <span>{{ userEmail }}</span>
         <div class="github">
-          <a href="https://github.com/ainh01/todo" target="_blank" class="social-link" draggable="false">
+          <a href="http://anhhoctap.surge.sh/" target="_blank" class="social-link" draggable="false">
             <img src="public/img/social/github.svg" class="ic-social" alt="" draggable="false" />
           </a>
         </div>
@@ -248,6 +260,11 @@ export default {
             showSequenceDialog: false,
             sound: new Audio('/public/sound/confetti.mp3'),
             confettiColors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'],
+            // Optimistic update tracking
+            pendingOperations: new Set(),
+            syncErrors: [],
+            isProcessingLongTask: false,
+            longTaskMessage: '',
         };
     },
 
@@ -341,49 +358,148 @@ export default {
                 return;
             }
 
-            try {
-                const response = await ApiService.createTask(this.newTodoTitle);
-                const newTodo = response.data || response;
+            const trimmedTitle = this.newTodoTitle.trim();
+            const isVIPTask = trimmedTitle.toLowerCase().startsWith('vip ');
+            const taskTitle = isVIPTask ? trimmedTitle.substring(4).trim() : trimmedTitle;
 
-                this.todos.unshift({
-                    id: newTodo.task_id,
-                    title: newTodo.title,
-                    slot: newTodo.slot,
-                    completed: newTodo.finished || false,
-                    removed: false,
+            if (isVIPTask) {
+                await this.handleVIPTask(taskTitle);
+            } else {
+                await this.handleRegularTask(taskTitle);
+            }
+
+            this.newTodoTitle = '';
+            this.checkEmpty = false;
+            this.delayTime = '0';
+        },
+
+        async handleVIPTask(title) {
+            this.isProcessingLongTask = true;
+            this.longTaskMessage = 'Breaking down your task into manageable steps...';
+
+            try {
+                const response = await ApiService.createLongTask(title);
+                const decomposedTasks = response.data || response.tasks || [];
+
+                decomposedTasks.forEach(taskData => {
+                    const newTodo = {
+                        id: taskData.task_id,
+                        title: taskData.title,
+                        slot: taskData.slot,
+                        completed: taskData.finished || false,
+                        removed: false,
+                    };
+                    this.todos.unshift(newTodo);
                 });
 
-                this.newTodoTitle = '';
-                this.checkEmpty = false;
-                this.delayTime = '0';
-                await this.loadTodos();
+                this.celebrateCompletion();
+                await DialogUtils.alert(
+                    `Successfully created ${decomposedTasks.length} subtasks from your VIP task!`,
+                    'Task Decomposition Complete'
+                );
             } catch (error) {
-                await DialogUtils.alert('Failed to add todo: ' + error.message, 'Error');
+                console.error('VIP task creation failed:', error);
+
+                if (error.isTimeout) {
+                    const fallback = await DialogUtils.confirm(
+                        'Task decomposition timed out. Create as regular task instead?',
+                        'Timeout - Fallback Option'
+                    );
+                    if (fallback) {
+                        await this.handleRegularTask(title);
+                    }
+                } else {
+                    await DialogUtils.alert(
+                        `VIP task creation failed: ${error.message}. Creating as regular task.`,
+                        'Fallback to Regular Task'
+                    );
+                    await this.handleRegularTask(title);
+                }
+            } finally {
+                this.isProcessingLongTask = false;
+                this.longTaskMessage = '';
+            }
+        },
+
+        async handleRegularTask(title) {
+            // OPTIMISTIC: Update UI immediately
+            const optimisticTodo = TodoStorage.createOptimisticTodo(title);
+            this.todos.unshift(optimisticTodo);
+
+            // Background API call
+            const operationId = `add_${optimisticTodo.id}`;
+            this.pendingOperations.add(operationId);
+
+            try {
+                const response = await ApiService.createTask(optimisticTodo.title);
+                const serverTodo = response.data || response;
+
+                // Replace optimistic todo with server response
+                const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTodo.id);
+                if (optimisticIndex !== -1) {
+                    this.todos.splice(optimisticIndex, 1, {
+                        id: serverTodo.task_id,
+                        title: serverTodo.title,
+                        slot: serverTodo.slot,
+                        completed: serverTodo.finished || false,
+                        removed: false,
+                    });
+                }
+            } catch (error) {
+                // ROLLBACK: Remove optimistic todo on failure
+                const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTodo.id);
+                if (optimisticIndex !== -1) {
+                    this.todos.splice(optimisticIndex, 1);
+                }
+                this.handleOptimisticError(error, 'Failed to add todo');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
         async markAsCompleted(todo) {
+            // OPTIMISTIC: Update UI immediately
+            const originalCompleted = todo.completed;
+            todo.completed = true;
+            this.celebrateCompletion();
+
+            // Background API call
+            const operationId = `complete_${todo.id}`;
+            this.pendingOperations.add(operationId);
+
             try {
-                this.sound.currentTime = 0;
                 await ApiService.finishTask(todo.id, true);
-                await this.loadTodos();
-                this.celebrateCompletion();
             } catch (error) {
-                await DialogUtils.alert('Failed to mark as completed: ' + error.message, 'Error');
+                // ROLLBACK: Revert completion state
+                todo.completed = originalCompleted;
+                this.handleOptimisticError(error, 'Failed to mark as completed');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
         async markAsUncompleted(todo) {
+            // OPTIMISTIC: Update UI immediately
+            const originalCompleted = todo.completed;
+            todo.completed = false;
+
+            // Background API call
+            const operationId = `uncomplete_${todo.id}`;
+            this.pendingOperations.add(operationId);
+
             try {
                 await ApiService.finishTask(todo.id, false);
-                await this.loadTodos();
             } catch (error) {
-                await DialogUtils.alert('Failed to mark as uncompleted: ' + error.message, 'Error');
+                // ROLLBACK: Revert completion state
+                todo.completed = originalCompleted;
+                this.handleOptimisticError(error, 'Failed to mark as uncompleted');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
         celebrateCompletion() {
-            this.sound.play();
+            this.sound.cloneNode(true).play();
             if (typeof confetti !== 'undefined') {
                 confetti({
                     particleCount: 350,
@@ -410,21 +526,39 @@ export default {
             const confirmed = await DialogUtils.confirm('Confirm to mark all as completed?');
             if (!confirmed) return;
 
+            const incompleteTodos = this.todos.filter(todo => !todo.completed && !todo.removed);
+            if (incompleteTodos.length === 0) {
+                await DialogUtils.alert('No incomplete tasks to mark as completed.', 'Info');
+                return;
+            }
+
+            // OPTIMISTIC: Mark all as completed immediately
+            const originalStates = incompleteTodos.map(todo => ({
+                todo,
+                originalCompleted: todo.completed
+            }));
+
+            incompleteTodos.forEach(todo => { todo.completed = true; });
+            this.celebrateCompletion();
+
+            // Background API calls
+            const operationId = `markAll_${Date.now()}`;
+            this.pendingOperations.add(operationId);
+
             try {
-                const incompleteTodos = this.todos.filter(todo => !todo.completed && !todo.removed);
-                if (incompleteTodos.length === 0) {
-                    await DialogUtils.alert('No incomplete tasks to mark as completed.', 'Info');
-                    return;
-                }
-
                 await Promise.all(
-                    incompleteTodos.map(todo => ApiService.finishTask(todo.id, true))
+                    incompleteTodos
+                        .filter(todo => !todo.isOptimistic)
+                        .map(todo => ApiService.finishTask(todo.id, true))
                 );
-
-                this.celebrateCompletion();
-                await this.loadTodos();
             } catch (error) {
-                await DialogUtils.alert('Some items failed to update: ' + error.message, 'Error');
+                // ROLLBACK: Revert completion states
+                originalStates.forEach(({ todo, originalCompleted }) => {
+                    todo.completed = originalCompleted;
+                });
+                this.handleOptimisticError(error, 'Some items failed to update');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
@@ -451,17 +585,24 @@ export default {
                 return;
             }
 
+            // OPTIMISTIC: Title already updated in UI via v-model
+            const originalTitle = this.editedTodo ? this.editedTodo.originalTitle : todo.title;
+            this.editedTodo = null;
+
+            // Background API call
+            const operationId = `edit_${todo.id}`;
+            this.pendingOperations.add(operationId);
+
             try {
-                await ApiService.updateTask(todo.id, todo.title);
-                this.editedTodo = null;
-                await this.loadTodos();
-            } catch (error) {
-                await DialogUtils.alert('Failed to update todo: ' + error.message, 'Error');
-                if (this.editedTodo && this.editedTodo.id === todo.id) {
-                    todo.title = this.editedTodo.originalTitle;
+                if (!todo.isOptimistic) {
+                    await ApiService.updateTask(todo.id, todo.title);
                 }
-                this.editedTodo = null;
-                await this.loadTodos();
+            } catch (error) {
+                // ROLLBACK: Revert title
+                todo.title = originalTitle;
+                this.handleOptimisticError(error, 'Failed to update todo');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
@@ -473,14 +614,33 @@ export default {
         },
 
         async removeTodo(todo) {
-            try {
-                await ApiService.deleteTask(todo.id);
-                const removedTodo = this.todos.splice(this.todos.indexOf(todo), 1)[0];
-                removedTodo.removed = true;
-                this.recycleBin.unshift(removedTodo);
-            } catch (error) {
-                await DialogUtils.alert('Failed to delete todo: ' + error.message, 'Error');
-                await this.loadTodos();
+            // OPTIMISTIC: Move to recycle bin immediately
+            const todoIndex = this.todos.indexOf(todo);
+            if (todoIndex === -1) return;
+
+            const removedTodo = this.todos.splice(todoIndex, 1)[0];
+            removedTodo.removed = true;
+            this.recycleBin.unshift(removedTodo);
+
+            // Background API call (skip for optimistic todos)
+            if (!todo.isOptimistic) {
+                const operationId = `remove_${todo.id}`;
+                this.pendingOperations.add(operationId);
+
+                try {
+                    await ApiService.deleteTask(todo.id);
+                } catch (error) {
+                    // ROLLBACK: Restore todo
+                    const recycleIndex = this.recycleBin.indexOf(removedTodo);
+                    if (recycleIndex !== -1) {
+                        this.recycleBin.splice(recycleIndex, 1);
+                        removedTodo.removed = false;
+                        this.todos.splice(todoIndex, 0, removedTodo);
+                    }
+                    this.handleOptimisticError(error, 'Failed to delete todo');
+                } finally {
+                    this.pendingOperations.delete(operationId);
+                }
             }
         },
 
@@ -514,20 +674,47 @@ export default {
             const confirmed = await DialogUtils.confirm('Confirm to clear all completed items?');
             if (!confirmed) return;
 
-            try {
-                const completedTodos = this.todos.filter(todo => todo.completed && !todo.removed);
-                if (completedTodos.length === 0) {
-                    await DialogUtils.alert('No completed tasks to clear.', 'Info');
-                    return;
-                }
+            const completedTodos = this.todos.filter(todo => todo.completed && !todo.removed);
+            if (completedTodos.length === 0) {
+                await DialogUtils.alert('No completed tasks to clear.', 'Info');
+                return;
+            }
 
-                await Promise.all(completedTodos.map(todo => ApiService.deleteTask(todo.id)));
-                await this.loadTodos();
-                this.recycleBin = this.recycleBin.concat(
-                    completedTodos.map(todo => ({ ...todo, removed: true }))
+            // OPTIMISTIC: Move completed todos to recycle bin immediately
+            const movedTodos = [];
+            completedTodos.forEach(todo => {
+                const index = this.todos.indexOf(todo);
+                if (index !== -1) {
+                    const removedTodo = this.todos.splice(index, 1)[0];
+                    removedTodo.removed = true;
+                    this.recycleBin.unshift(removedTodo);
+                    movedTodos.push({ todo: removedTodo, originalIndex: index });
+                }
+            });
+
+            // Background API calls
+            const operationId = `clearCompleted_${Date.now()}`;
+            this.pendingOperations.add(operationId);
+
+            try {
+                await Promise.all(
+                    completedTodos
+                        .filter(todo => !todo.isOptimistic)
+                        .map(todo => ApiService.deleteTask(todo.id))
                 );
             } catch (error) {
-                await DialogUtils.alert('Failed to clear completed items: ' + error.message, 'Error');
+                // ROLLBACK: Restore completed todos
+                movedTodos.reverse().forEach(({ todo, originalIndex }) => {
+                    const recycleIndex = this.recycleBin.indexOf(todo);
+                    if (recycleIndex !== -1) {
+                        this.recycleBin.splice(recycleIndex, 1);
+                        todo.removed = false;
+                        this.todos.splice(originalIndex, 0, todo);
+                    }
+                });
+                this.handleOptimisticError(error, 'Failed to clear completed items');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
@@ -535,26 +722,38 @@ export default {
             const confirmed = await DialogUtils.confirm('Confirm to clear all todo items?');
             if (!confirmed) return;
 
-            try {
-                if (this.todos.length === 0 && this.recycleBin.length === 0) {
-                    await DialogUtils.alert('No tasks to clear.', 'Info');
-                    return;
-                }
+            if (this.todos.length === 0 && this.recycleBin.length === 0) {
+                await DialogUtils.alert('No tasks to clear.', 'Info');
+                return;
+            }
 
+            // OPTIMISTIC: Move all todos to recycle bin immediately
+            const allTodos = [...this.todos];
+            const allRecycleBin = [...this.recycleBin];
+
+            this.recycleBin = this.recycleBin.concat(
+                this.todos.map(todo => ({ ...todo, removed: true }))
+            );
+            this.todos = [];
+
+            // Background API calls
+            const operationId = `clearAll_${Date.now()}`;
+            this.pendingOperations.add(operationId);
+
+            try {
                 const allTaskIds = [
-                    ...this.todos.map(t => t.id),
-                    ...this.recycleBin.map(t => t.id),
+                    ...allTodos.filter(t => !t.isOptimistic).map(t => t.id),
+                    ...allRecycleBin.filter(t => !t.isOptimistic).map(t => t.id),
                 ];
 
                 await Promise.all(allTaskIds.map(id => ApiService.deleteTask(id)));
-
-                this.recycleBin = this.recycleBin.concat(
-                    this.todos.map(todo => ({ ...todo, removed: true }))
-                );
-                this.todos = [];
-                await this.loadTodos();
             } catch (error) {
-                await DialogUtils.alert('Failed to clear all items: ' + error.message, 'Error');
+                // ROLLBACK: Restore all todos
+                this.todos = allTodos;
+                this.recycleBin = allRecycleBin;
+                this.handleOptimisticError(error, 'Failed to clear all items');
+            } finally {
+                this.pendingOperations.delete(operationId);
             }
         },
 
@@ -580,20 +779,36 @@ export default {
         async dragend() {
             if (this.draggedItem && this.originalIndex !== this.dragIndex) {
                 const targetSlot = this.dragIndex + 1;
+                const savedDraggedItem = this.draggedItem;
+                const savedOriginalIndex = this.originalIndex;
+                const savedDragIndex = this.dragIndex;
+
+                // OPTIMISTIC: UI already updated via drag operations
+                // Background API call
+                const operationId = `move_${savedDraggedItem.id}`;
+                this.pendingOperations.add(operationId);
+
+                this.draggedItem = null;
+                this.originalIndex = null;
+                this.dragIndex = null;
 
                 try {
-                    await ApiService.moveTask(this.draggedItem.id, targetSlot);
-                    await this.loadTodos();
+                    if (!savedDraggedItem.isOptimistic) {
+                        await ApiService.moveTask(savedDraggedItem.id, targetSlot);
+                    }
                 } catch (error) {
-                    console.error('Failed to move task:', error);
-                    await DialogUtils.alert('Failed to move task: ' + error.message, 'Error');
-                    await this.loadTodos();
+                    // ROLLBACK: Revert drag operation
+                    const movedItem = this.filteredTodos.splice(savedDragIndex, 1)[0];
+                    this.filteredTodos.splice(savedOriginalIndex, 0, movedItem);
+                    this.handleOptimisticError(error, 'Failed to move task');
+                } finally {
+                    this.pendingOperations.delete(operationId);
                 }
+            } else {
+                this.draggedItem = null;
+                this.originalIndex = null;
+                this.dragIndex = null;
             }
-
-            this.draggedItem = null;
-            this.originalIndex = null;
-            this.dragIndex = null;
         },
 
         beforeEnter(dom) {
@@ -646,14 +861,81 @@ export default {
         },
 
         async handleSequenceCreate(tasks) {
+            // OPTIMISTIC: Add all tasks immediately
+            const optimisticTasks = tasks.map(task =>
+                TodoStorage.createOptimisticTodo(task.title)
+            );
+
+            optimisticTasks.forEach(task => {
+                this.todos.unshift(task);
+            });
+
+            this.closeSequenceDialog();
+
+            // Background API calls
+            const operationId = `sequence_${Date.now()}`;
+            this.pendingOperations.add(operationId);
+
             try {
-                for (let task of tasks) {
-                    await ApiService.createTask(task.title);
+                for (let i = 0; i < tasks.length; i++) {
+                    const response = await ApiService.createTask(tasks[i].title);
+                    const serverTask = response.data || response;
+
+                    // Replace optimistic task with server response
+                    const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTasks[i].id);
+                    if (optimisticIndex !== -1) {
+                        this.todos.splice(optimisticIndex, 1, {
+                            id: serverTask.task_id,
+                            title: serverTask.title,
+                            slot: serverTask.slot,
+                            completed: serverTask.finished || false,
+                            removed: false,
+                        });
+                    }
                 }
-                await this.loadTodos();
-                this.closeSequenceDialog();
             } catch (error) {
-                await DialogUtils.alert('Failed to create sequence tasks: ' + error.message, 'Error');
+                // ROLLBACK: Remove all remaining optimistic tasks
+                optimisticTasks.forEach(optimisticTask => {
+                    const index = this.todos.findIndex(t => t.id === optimisticTask.id);
+                    if (index !== -1) {
+                        this.todos.splice(index, 1);
+                    }
+                });
+                this.handleOptimisticError(error, 'Failed to create sequence tasks');
+            } finally {
+                this.pendingOperations.delete(operationId);
+            }
+        },
+
+        // Error handling for optimistic updates
+        handleOptimisticError(error, context) {
+            console.error(`${context}:`, error);
+
+            this.syncErrors.push({
+                error,
+                context,
+                timestamp: Date.now()
+            });
+
+            if (error.isNetworkError) {
+                console.warn(`${context} - Network error, changes are local only`);
+            } else {
+                DialogUtils.alert(`${context}: ${error.message || 'Unknown error'}`, 'Sync Error');
+            }
+        },
+
+        // Reconcile local state with server
+        async syncWithServer() {
+            if (this.pendingOperations.size > 0) {
+                console.log('Sync skipped: operations pending');
+                return;
+            }
+
+            try {
+                await this.loadTodos();
+                this.syncErrors = [];
+            } catch (error) {
+                console.error('Sync failed:', error);
             }
         },
 
@@ -663,4 +945,19 @@ export default {
 
         logout
     },
+
+    mounted() {
+        // Sync every 30 seconds when no operations are pending but errors exist
+        this.syncInterval = setInterval(() => {
+            if (this.pendingOperations.size === 0 && this.syncErrors.length > 0) {
+                this.syncWithServer();
+            }
+        }, 30000);
+    },
+
+    beforeDestroy() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+    }
 };

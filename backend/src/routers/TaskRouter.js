@@ -8,7 +8,8 @@ const {
   updateTask,
   moveTask,
   finishTask,
-  deleteTask
+  deleteTask,
+  createLongTasks
 } = require('../controllers/TaskController');
 
 /**  
@@ -210,5 +211,48 @@ router.post('/tasks/:id/finish', protect, finishTask);
  *         description: Task not found  
  */
 router.delete('/tasks/:id', protect, deleteTask);
+
+/**  
+ * @swagger  
+ * /api/longTasks:  
+ *   post:  
+ *     summary: Generate multiple tasks using GenAI service  
+ *     tags: [Tasks]  
+ *     security:  
+ *       - bearerAuth: []  
+ *     requestBody:  
+ *       required: true  
+ *       content:  
+ *         application/json:  
+ *           schema:  
+ *             type: object  
+ *             required:  
+ *               - title  
+ *             properties:  
+ *               title:  
+ *                 type: string  
+ *                 description: Input text to generate related tasks from  
+ *     responses:  
+ *       201:  
+ *         description: Tasks created successfully  
+ *         content:  
+ *           application/json:  
+ *             schema:  
+ *               type: object  
+ *               properties:  
+ *                 success:  
+ *                   type: boolean  
+ *                 data:  
+ *                   type: array  
+ *                   items:  
+ *                     $ref: '#/components/schemas/Task'  
+ *       400:  
+ *         description: Bad request - missing title or no tasks found  
+ *       401:  
+ *         description: Unauthorized  
+ *       500:  
+ *         description: Server error - GenAI API failure or missing environment variables  
+ */  
+router.post('/longTasks', protect, createLongTasks);
 
 module.exports = router;  

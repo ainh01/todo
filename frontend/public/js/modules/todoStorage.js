@@ -22,6 +22,33 @@ export class TodoStorage {
             throw error;
         }
     }
+    // Optimistic update helpers
+    static generateOptimisticId() {
+        return `temp_${Date.now()}_${Math.random()}`;
+    }
+
+    static createOptimisticTodo(title, position = 0) {
+        return {
+            id: this.generateOptimisticId(),
+            title: title.trim(),
+            slot: position,
+            completed: false,
+            removed: false,
+            isOptimistic: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+    }
+
+    static updateTodoOptimistically(todo, updates) {
+        return {
+            ...todo,
+            ...updates,
+            updated_at: new Date().toISOString(),
+            wasOptimistic: todo.isOptimistic || false
+        };
+    }
+
     static getSlogan() {
         return localStorage.getItem('uiineed-slogan') || 'Act Now, Simplify Life.☕';
     }

@@ -24,55 +24,107 @@ export class ApiService {
     return data;
   }
 
+  // Enhanced error handling for optimistic updates
+  static async safeApiCall(apiCall, errorContext = '') {
+    try {
+      return await apiCall();
+    } catch (error) {
+      console.error(`${errorContext} failed:`, error);
+      throw {
+        ...error,
+        message: error.message,
+        isNetworkError: error.name === 'TypeError' || (error.message && error.message.includes('fetch')),
+        isServerError: error.message && error.message.includes('Internal Server Error'),
+        shouldRetry: error.name === 'TypeError' || error.status >= 500
+      };
+    }
+  }
+
   static async getTasks() {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
+    }, 'Get tasks');
   }
 
   static async createTask(title) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ title })
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ title })
+      });
+      return this.handleResponse(response);
+    }, 'Create task');
   }
 
   static async updateTask(taskId, title) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ title })
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ title })
+      });
+      return this.handleResponse(response);
+    }, 'Update task');
   }
 
   static async finishTask(taskId, finished = true) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/finish`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ finished })
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/finish`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ finished })
+      });
+      return this.handleResponse(response);
+    }, 'Finish task');
   }
 
   static async moveTask(taskId, targetSlot) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/move`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ target_slot: targetSlot })
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/move`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ target_slot: targetSlot })
+      });
+      return this.handleResponse(response);
+    }, 'Move task');
   }
 
   static async deleteTask(taskId) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders()
-    });
-    return this.handleResponse(response);
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
+    }, 'Delete task');
+  }
+
+  static async createLongTask(title) {
+    return this.safeApiCall(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LONG_TASKS}`, {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify({ title }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return this.handleResponse(response);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw { ...error, message: 'Long task processing timed out', isTimeout: true };
+        }
+        throw error;
+      }
+    }, 'Create long task');
   }
 }

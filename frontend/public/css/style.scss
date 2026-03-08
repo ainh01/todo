@@ -590,6 +590,35 @@ h1 {
     height: 16px;
 }
 
+.btn-copy {
+    background: #3b82f6;
+    right: 40px;
+    top: 16px;
+    height: 30px;
+    width: 30px;
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-copy:hover {
+    background: #2563eb;
+}
+
+.btn-copy img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) invert(1);
+}
+
+/* When copy button is present, expand content padding to clear both buttons */
+.todo-list li:has(.btn-copy) .todo-content {
+    padding-right: 80px;
+}
+
 .btn-finish {
     left: 14px;
     top: 16px;
