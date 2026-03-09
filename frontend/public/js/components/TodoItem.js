@@ -22,6 +22,7 @@ export default {
     template: `
     <li
       class="todo-item"
+      :class="{'todo-item--saving': todo.saving, 'todo-item--error': todo.saveError}"
       @dragenter="handleDragEnter"
       @dragover="handleDragOver"
       @dragstart="handleDragStart"
@@ -85,11 +86,24 @@ export default {
       </div>
       
       <div
+        v-else-if="todo.saving"
+        class="todo-saving-indicator"
+      >
+        <div class="todo-saving-spinner"></div>
+      </div>
+
+      <div
         class="todo-btn btn-delete"
         v-else
         @click="$emit('remove', todo)"
       >
         <img src="public/img/delete.svg" alt="Delete" draggable="false" />
+      </div>
+
+      <div v-if="todo.saveError" class="todo-error-bar">
+        <span class="todo-error-msg">&#9888; {{ todo.saveErrorMsg || 'Save failed' }}</span>
+        <button class="btn-retry-task" @click.stop="$emit('retry', todo)">Retry</button>
+        <button class="btn-discard-task" @click.stop="$emit('remove', todo)">Discard</button>
       </div>
 
       <div class="edit-todo-wrapper" v-if="isEditing">

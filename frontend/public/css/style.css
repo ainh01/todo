@@ -1760,3 +1760,104 @@ span.shortcut-name {
 .custom-alert-btn.cancel {
   background: var(--deleted);
 }
+
+/* ── Saving / error states on todo items ─────────────────────────────────── */
+
+.todo-item--saving .todo-content {
+  opacity: 0.65;
+}
+
+/* Spinner shown in place of the delete button while saving */
+.todo-saving-indicator {
+  position: absolute;
+  right: 12px;
+  top: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--border-radius);
+  border: var(--border);
+  background: #fff;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+}
+
+.todo-saving-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ddd;
+  border-top-color: #888;
+  border-radius: 50%;
+  -webkit-animation: todo-spin 0.7s linear infinite;
+          animation: todo-spin 0.7s linear infinite;
+}
+
+@-webkit-keyframes todo-spin {
+  to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+}
+@keyframes todo-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error bar shown inside the item below the content */
+.todo-error-bar {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 8px;
+  padding: 6px 46px 6px 56px;
+  background: var(--bg-discard);
+  border-top: 1px solid var(--deleted);
+  font-size: 13px;
+  color: #c0392b;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.todo-error-msg {
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  word-break: break-word;
+}
+
+.btn-retry-task,
+.btn-discard-task {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  border: var(--border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  background: #fff;
+  -webkit-transition: all 0.2s;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-retry-task:hover {
+  background: var(--bg-completed);
+  -webkit-box-shadow: var(--box-shadow);
+          box-shadow: var(--box-shadow);
+  -webkit-transform: translate(-2px, -2px);
+      -ms-transform: translate(-2px, -2px);
+          transform: translate(-2px, -2px);
+}
+
+.btn-discard-task:hover {
+  background: var(--deleted);
+  -webkit-box-shadow: var(--box-shadow);
+          box-shadow: var(--box-shadow);
+  -webkit-transform: translate(-2px, -2px);
+      -ms-transform: translate(-2px, -2px);
+          transform: translate(-2px, -2px);
+}

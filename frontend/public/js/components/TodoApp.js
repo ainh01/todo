@@ -143,6 +143,7 @@ export default {
               @uncomplete="markAsUncompleted"
               @remove="removeTodo"
               @restore="restoreTodo"
+              @retry="retryAddTodo"
               @drag-start="dragstart"
               @drag-enter="dragenter"
               @drag-over="dragover"
@@ -364,13 +365,16 @@ export default {
 
             if (isVIPTask) {
                 await this.handleVIPTask(taskTitle);
+                this.newTodoTitle = '';
+                this.checkEmpty = false;
+                this.delayTime = '0';
             } else {
-                await this.handleRegularTask(taskTitle);
+                // Non-blocking: clear input immediately so user can keep typing
+                this.newTodoTitle = '';
+                this.checkEmpty = false;
+                this.delayTime = '0';
+                this.handleRegularTask(taskTitle); // fire-and-forget
             }
-
-            this.newTodoTitle = '';
-            this.checkEmpty = false;
-            this.delayTime = '0';
         },
 
         async handleVIPTask(title) {
@@ -422,8 +426,11 @@ export default {
         },
 
         async handleRegularTask(title) {
-            // OPTIMISTIC: Update UI immediately
+            // OPTIMISTIC: Add to list immediately with saving indicator
             const optimisticTodo = TodoStorage.createOptimisticTodo(title);
+            optimisticTodo.saving = true;
+            optimisticTodo.saveError = false;
+            optimisticTodo.saveErrorMsg = '';
             this.todos.push(optimisticTodo);
 
             // Background API call
@@ -434,7 +441,7 @@ export default {
                 const response = await ApiService.createTask(optimisticTodo.title);
                 const serverTodo = response.data || response;
 
-                // Replace optimistic todo with server response
+                // Replace optimistic todo with confirmed server response
                 const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTodo.id);
                 if (optimisticIndex !== -1) {
                     this.todos.splice(optimisticIndex, 1, {
@@ -446,12 +453,49 @@ export default {
                     });
                 }
             } catch (error) {
-                // ROLLBACK: Remove optimistic todo on failure
-                const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTodo.id);
-                if (optimisticIndex !== -1) {
-                    this.todos.splice(optimisticIndex, 1);
+                // Show inline error on the task — do not remove it
+                const idx = this.todos.findIndex(t => t.id === optimisticTodo.id);
+                if (idx !== -1) {
+                    this.todos[idx].saving = false;
+                    this.todos[idx].saveError = true;
+                    this.todos[idx].saveErrorMsg = error.message || 'Failed to save';
                 }
-                this.handleOptimisticError(error, 'Failed to add todo');
+                console.error('Failed to add todo:', error);
+            } finally {
+                this.pendingOperations.delete(operationId);
+            }
+        },
+
+        async retryAddTodo(todo) {
+            todo.saveError = false;
+            todo.saveErrorMsg = '';
+            todo.saving = true;
+
+            const operationId = `add_retry_${todo.id}`;
+            this.pendingOperations.add(operationId);
+
+            try {
+                const response = await ApiService.createTask(todo.title);
+                const serverTodo = response.data || response;
+
+                const idx = this.todos.findIndex(t => t.id === todo.id);
+                if (idx !== -1) {
+                    this.todos.splice(idx, 1, {
+                        id: serverTodo.task_id,
+                        title: serverTodo.title,
+                        slot: serverTodo.slot,
+                        completed: serverTodo.finished || false,
+                        removed: false,
+                    });
+                }
+            } catch (error) {
+                const idx = this.todos.findIndex(t => t.id === todo.id);
+                if (idx !== -1) {
+                    this.todos[idx].saving = false;
+                    this.todos[idx].saveError = true;
+                    this.todos[idx].saveErrorMsg = error.message || 'Failed to save';
+                }
+                console.error('Retry failed:', error);
             } finally {
                 this.pendingOperations.delete(operationId);
             }
