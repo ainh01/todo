@@ -389,7 +389,7 @@ export default {
                         completed: taskData.finished || false,
                         removed: false,
                     };
-                    this.todos.unshift(newTodo);
+                    this.todos.push(newTodo);
                 });
 
                 this.celebrateCompletion();
@@ -424,7 +424,7 @@ export default {
         async handleRegularTask(title) {
             // OPTIMISTIC: Update UI immediately
             const optimisticTodo = TodoStorage.createOptimisticTodo(title);
-            this.todos.unshift(optimisticTodo);
+            this.todos.push(optimisticTodo);
 
             // Background API call
             const operationId = `add_${optimisticTodo.id}`;
@@ -867,7 +867,7 @@ export default {
             );
 
             optimisticTasks.forEach(task => {
-                this.todos.unshift(task);
+                this.todos.push(task);
             });
 
             this.closeSequenceDialog();
