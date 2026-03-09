@@ -94,7 +94,7 @@ exports.createLongTasks = async (req, res) => {
       ? Math.max(...user.tasks.map(t => t.slot)) + 1
       : 1;
 
-    const newTasks = extractedTasks.map((taskTitle, index) => ({
+    const newTasks = extractedTasks.reverse().map((taskTitle, index) => ({
       task_id: startTaskId + index,
       title: taskTitle,
       slot: startSlot + index,
