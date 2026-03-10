@@ -18,6 +18,8 @@
     <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="public/js/vue.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" crossorigin="anonymous"></script>
     <style>
       @font-face {
         font-family: 'Achievement';
@@ -58,6 +60,7 @@
         color: var(--rush-red);
         text-align: center;
         min-width: 100px;
+        opacity: 0.74;
       }
 
       .timer-negative {
@@ -464,8 +467,7 @@
                         @dblclick="startEdit(task)"
                         >
                       
-                      <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }">
-                        {{ task.title }} (HL: {{ task.hl }})
+                      <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }" v-html="renderTaskLabel(task)">
                       </label>
                       
                       <div v-if="task.completed" 
@@ -496,8 +498,18 @@
                       {{ formatTime(currentTaskTimeLeft) }}
                     </div>
 
+                    <!-- Copy button for hidden prompts (shown during session) -->
+                    <div
+                      class="todo-btn btn-copy"
+                      v-if="hasHiddenPrompt(task) && editingTask !== task.id && (sessionActive || sessionPaused)"
+                      @click="copyPromptContent(task, $event)"
+                      title="Copy hidden prompt"
+                    >
+                      <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />
+                    </div>
+
                     <div class="task-controls"> 
-                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive" > 
+                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive && !sessionPaused" > 
                       <img src="public/img/delete.svg" alt="Delete" draggable="false">
                       </div> 
                     </div>
@@ -551,6 +563,7 @@
             newTaskHL: 1,
             totalTimeMinutes: 60,
             sessionActive: false,
+            importSuccessMessage: '',
             sessionPaused: false,
             sessionStartTime: null,
             pausedTime: 0,
@@ -577,6 +590,10 @@
           };
         },
 
+        async mounted() {
+          await this.loadImportedTasks();
+        },
+
         computed: {
           totalTimeSeconds() {
             return this.totalTimeMinutes * 60;
@@ -601,6 +618,9 @@
           },
 
           statusMessage() {
+            if (this.importSuccessMessage) {
+              return this.importSuccessMessage;
+            }
             if (this.sessionActive) {
               const current = this.tasks[this.currentTaskIndex];
               return current
@@ -762,6 +782,123 @@
             }
 
             this.draggedIndex = null;
+          },
+
+          async loadImportedTasks() {
+            try {
+              const importedData = localStorage.getItem('rush-imported-tasks');
+              if (importedData) {
+                const importedTasks = JSON.parse(importedData);
+                if (Array.isArray(importedTasks) && importedTasks.length > 0) {
+                  this.tasks = importedTasks;
+                  this.recalculateAllocatedTimes();
+                  this.importSuccessMessage = `Successfully imported ${importedTasks.length} task(s) from your todo list!`;
+
+                  localStorage.removeItem('rush-imported-tasks');
+
+                  setTimeout(() => {
+                    this.importSuccessMessage = '';
+                  }, 5000);
+                }
+              }
+            } catch (error) {
+              console.error('Failed to load imported tasks:', error);
+            }
+          },
+
+          hasHiddenPrompt(task) {
+            return task.title.includes('fPrompt[') && task.title.includes('fPromptEnd]');
+          },
+
+          getHiddenPromptContent(task) {
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            const matches = [...task.title.matchAll(promptPattern)];
+            return matches.map(match => match[1]).join('\n\n');
+          },
+
+          async copyPromptContent(task, event) {
+            if (!this.hasHiddenPrompt(task)) return;
+
+            const content = this.getHiddenPromptContent(task);
+            try {
+              if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(content);
+              } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+              }
+              this.showCopyFeedback(event);
+            } catch (error) {
+              console.error('Copy failed:', error);
+            }
+          },
+
+          showCopyFeedback(event) {
+            const copyBtn = event && event.currentTarget;
+            if (copyBtn) {
+              const originalTitle = copyBtn.title;
+              copyBtn.title = 'Copied!';
+              copyBtn.style.background = '#16a34a';
+              copyBtn.style.borderColor = '#16a34a';
+              setTimeout(() => {
+                copyBtn.title = originalTitle;
+                copyBtn.style.background = '';
+                copyBtn.style.borderColor = '';
+              }, 1500);
+            }
+          },
+
+          renderTaskLabel(task) {
+            const displayTitle = this.parseHiddenPrompts(this.renderMath(task.title));
+            return `${displayTitle} (HL: ${task.hl})`;
+          },
+
+          parseHiddenPrompts(content) {
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            return content.replace(promptPattern, '').trim();
+          },
+
+          renderMath(content) {
+            if (typeof katex !== 'undefined') {
+              try {
+                content = content.replace(/\$\$([^$]+)\$\$/g, (match, mathContent) => {
+                  try {
+                    return katex.renderToString(mathContent.trim(), {
+                      displayMode: true,
+                      throwOnError: false,
+                      strict: false
+                    });
+                  } catch (e) {
+                    console.warn('KaTeX display math error:', e);
+                    return match;
+                  }
+                });
+
+                content = content.replace(/\$([^$]+)\$/g, (match, mathContent) => {
+                  try {
+                    return katex.renderToString(mathContent.trim(), {
+                      displayMode: false,
+                      throwOnError: false,
+                      strict: false
+                    });
+                  } catch (e) {
+                    console.warn('KaTeX inline math error:', e);
+                    return match;
+                  }
+                });
+              } catch (error) {
+                console.error('KaTeX rendering error:', error);
+              }
+            }
+            return content;
           },
 
           celebrateCompletion() {

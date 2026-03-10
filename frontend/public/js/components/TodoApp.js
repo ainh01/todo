@@ -175,6 +175,7 @@ export default {
           @import-data="handleImportData"
           @toggle-sidebar="toggleSidebar"
           @open-sequence-dialog="openSequenceDialog"
+          @convert-rush="convertToRush"
         />
       </div>
 
@@ -954,6 +955,46 @@ export default {
                 this.handleOptimisticError(error, 'Failed to create sequence tasks');
             } finally {
                 this.pendingOperations.delete(operationId);
+            }
+        },
+
+        async convertToRush() {
+            const activeTodos = this.todos.filter(todo => !todo.removed);
+
+            if (activeTodos.length === 0) {
+                await DialogUtils.alert('No tasks available to convert to RUSH mode.', 'Info');
+                return;
+            }
+
+            const confirmed = await DialogUtils.confirm(
+                `Convert ${activeTodos.length} task(s) to RUSH mode?\n\nThis will redirect you to RUSH mode with your current tasks.`,
+                'Convert to RUSH Mode'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const rushTasks = activeTodos.map(todo => {
+                    const hl = 1;
+
+                    return {
+                        id: Date.now() + Math.random(),
+                        title: todo.title,
+                        hl: hl,
+                        completed: todo.completed,
+                        allocatedTime: 0,
+                        actualTime: 0,
+                        startTime: null,
+                        deadline: 0,
+                        removed: false
+                    };
+                });
+
+                localStorage.setItem('rush-imported-tasks', JSON.stringify(rushTasks));
+                window.location.href = 'rush.html';
+            } catch (error) {
+                console.error('Failed to convert to RUSH:', error);
+                await DialogUtils.alert('Failed to convert tasks to RUSH mode. Please try again.', 'Error');
             }
         },
 

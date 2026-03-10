@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Mode - User Task Management</title>
+    <meta
+      name="keywords"
+      content="admin todo, user management, task administration"
+    />
+    <meta
+      name="description"
+      content="Administrative interface for managing user tasks and viewing user todo lists."
+    />
+    <link type="favicon" rel="shortcut icon" href="public/img/favicon.png" />
+    <link href="public/css/normalize.css" rel="stylesheet" media="screen" />
+    <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" crossorigin="anonymous"></script>
+  </head>
+
+  <body>
+    <div class="bg-pattern"></div>
+    <div class="todo-wrapper">
+      <div id="admin-app" class="todo-app"></div>
+    </div>
+
+    <script type="module">
+      import { ApiService } from "./public/js/modules/apiService.js";
+      import { DialogUtils } from "./public/js/modules/dialogUtils.js";
+      import { authGuard } from "./public/js/modules/authGuard.js";
+
+      authGuard();
+
+      const AdminApp = {
+        name: "AdminApp",
+
+        template: `
+          <div>
+            <div class="container header">
+              <div class="todo-input">
+                <h1 class="title" style="color: #8b5cf6;">
+                  <img src="public/img/todo.svg" alt="" class="title-1" draggable="false" />
+                  Admin Dashboard
+                </h1>
+
+                <div class="add-content-wrapper" style="margin-bottom: 8px;">
+                  <input
+                    type="email"
+                    class="add-content"
+                    placeholder="Enter user email address..."
+                    v-model="targetEmail"
+                    :disabled="isLoading"
+                    @keyup.enter="loadUserTasks"
+                    style="padding-right: 120px;"
+                  />
+                  <button
+                    class="btn submit-btn"
+                    type="button"
+                    @click="loadUserTasks"
+                    :disabled="isLoading || !targetEmail.trim()"
+                    style="background: #8b5cf6;"
+                  >
+                    {{ isLoading ? 'Loading...' : 'Load' }}
+                  </button>
+                </div>
+
+                <div class="add-content-wrapper" v-if="currentUser">
+                  <input
+                    type="text"
+                    class="add-content"
+                    :placeholder="'Add task for ' + currentUser + '...'"
+                    v-model="newTaskTitle"
+                    @keyup.enter="addTaskForUser"
+                    :disabled="isAddingTask"
+                  />
+                  <button
+                    class="btn submit-btn"
+                    type="button"
+                    @click="addTaskForUser"
+                    :disabled="isAddingTask || !newTaskTitle.trim()"
+                  >
+                    {{ isAddingTask ? 'Adding...' : 'Add' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="container main">
+              <div class="todo-list-box">
+                <div class="bar-message" style="border-color: #8b5cf6;">
+                  <div class="bar-message-text" style="color: #8b5cf6; font-weight: bold;">
+                    {{ statusMessage }}
+                  </div>
+                </div>
+
+                <ul v-if="!userTasks.length && currentUser && !isLoading" class="empty-tips">
+                  <li>📝 {{ currentUser }} has no tasks</li>
+                  <li>➕ Add tasks using the input field above</li>
+                </ul>
+
+                <ul v-if="!currentUser && !isLoading" class="empty-tips">
+                  <li>👨‍💼 Welcome to Admin Mode</li>
+                  <li>📧 Enter a user's email address to view their tasks</li>
+                  <li>👀 Tasks are displayed in read-only mode</li>
+                  <li>➕ You can add new tasks for any user</li>
+                </ul>
+
+                <ul class="todo-list">
+                  <li
+                    v-for="(task, index) in userTasks"
+                    :key="task.id"
+                    class="todo-item"
+                    style="pointer-events: none;"
+                  >
+                    <div
+                      class="todo-content"
+                      :class="{ completed: task.completed }"
+                      v-html="renderTaskContent(task)"
+                    >
+                    </div>
+
+                    <div
+                      class="todo-btn btn-copy"
+                      v-if="hasHiddenPrompt(task)"
+                      @click.stop="copyPromptContent(task, $event)"
+                      title="Copy hidden prompt"
+                      style="pointer-events: auto;"
+                    >
+                      <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />
+                    </div>
+                  </li>
+                </ul>
+
+                <div class="bar-message bar-bottom">
+                  <div class="bar-message-text">
+                    <span v-if="currentUser">
+                      {{ userTasks.length }} task(s) for {{ currentUser }}
+                      — {{ completedCount }} completed, {{ incompleteCount }} remaining
+                    </span>
+                    <span v-else>Enter an email above to manage user tasks</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="nav">
+              <span>{{ adminEmail }} (Admin)</span>
+              <div class="rush-nav" style="margin-right: 15px;">
+                <button
+                  class="shortcut-title"
+                  style="background-color: rgb(99, 102, 241); border-radius: 3px; color: white; margin-right: 8px;"
+                  @click="goBackToNormal"
+                >
+                  Normal Mode
+                </button>
+              </div>
+              <div class="user-info">
+                <button
+                  class="shortcut-title"
+                  style="background-color: rgb(250, 233, 254); border-radius: 3px"
+                  @click="logout"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        `,
+
+        data() {
+          return {
+            targetEmail: '',
+            currentUser: '',
+            userTasks: [],
+            newTaskTitle: '',
+            isLoading: false,
+            isAddingTask: false,
+            adminEmail: localStorage.getItem("user_email") || "",
+            errorMessage: ''
+          };
+        },
+
+        computed: {
+          statusMessage() {
+            if (this.errorMessage) return this.errorMessage;
+            if (this.isLoading) return 'Loading tasks for ' + this.targetEmail + '...';
+            if (this.isAddingTask) return 'Adding task for ' + this.currentUser + '...';
+            if (this.currentUser) {
+              return 'Managing tasks for: ' + this.currentUser;
+            }
+            return "Admin Dashboard — Enter email to manage user tasks";
+          },
+
+          completedCount() {
+            return this.userTasks.filter(task => task.completed).length;
+          },
+
+          incompleteCount() {
+            return this.userTasks.filter(task => !task.completed).length;
+          }
+        },
+
+        methods: {
+          async loadUserTasks() {
+            const email = this.targetEmail.trim();
+            if (!email) return;
+
+            this.isLoading = true;
+            this.errorMessage = '';
+
+            try {
+              const response = await ApiService.getUserTasks(email);
+              this.userTasks = (response.data || []).map(task => ({
+                id: task.task_id || task._id,
+                title: task.title,
+                completed: task.finished || false,
+                slot: task.slot,
+                created_at: task.created_at,
+                updated_at: task.updated_at
+              }));
+
+              this.currentUser = email;
+            } catch (error) {
+              console.error('Failed to load user tasks:', error);
+              this.errorMessage = this.getErrorMessage(error);
+              this.userTasks = [];
+              this.currentUser = '';
+              setTimeout(() => { this.errorMessage = ''; }, 5000);
+            } finally {
+              this.isLoading = false;
+            }
+          },
+
+          async addTaskForUser() {
+            const title = this.newTaskTitle.trim();
+            if (!title || !this.currentUser) return;
+
+            this.isAddingTask = true;
+            this.errorMessage = '';
+
+            try {
+              const response = await ApiService.createTaskForUser(this.currentUser, title);
+              const newTask = response.data;
+
+              this.userTasks.push({
+                id: newTask.task_id || newTask._id,
+                title: newTask.title,
+                completed: newTask.finished || false,
+                slot: newTask.slot,
+                created_at: newTask.created_at,
+                updated_at: newTask.updated_at
+              });
+
+              this.newTaskTitle = '';
+            } catch (error) {
+              console.error('Failed to add task:', error);
+              this.errorMessage = this.getErrorMessage(error);
+              setTimeout(() => { this.errorMessage = ''; }, 5000);
+            } finally {
+              this.isAddingTask = false;
+            }
+          },
+
+          renderTaskContent(task) {
+            let content = task.title;
+
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            let displayContent = content.replace(promptPattern, '').trim();
+
+            if (window.katex) {
+              try {
+                displayContent = displayContent.replace(/\$\$([^$]+)\$\$/g, (match, mathContent) => {
+                  try {
+                    return katex.renderToString(mathContent.trim(), {
+                      displayMode: true,
+                      throwOnError: false,
+                      strict: false
+                    });
+                  } catch (e) {
+                    return match;
+                  }
+                });
+
+                displayContent = displayContent.replace(/\$([^$]+)\$/g, (match, mathContent) => {
+                  try {
+                    return katex.renderToString(mathContent.trim(), {
+                      displayMode: false,
+                      throwOnError: false,
+                      strict: false
+                    });
+                  } catch (e) {
+                    return match;
+                  }
+                });
+              } catch (error) {
+                console.error('KaTeX rendering error:', error);
+              }
+            }
+
+            return displayContent;
+          },
+
+          hasHiddenPrompt(task) {
+            return task.title.includes('fPrompt[') && task.title.includes('fPromptEnd]');
+          },
+
+          async copyPromptContent(task, event) {
+            const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
+            const matches = [...task.title.matchAll(promptPattern)];
+            const content = matches.map(match => match[1]).join('\n\n');
+
+            try {
+              if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(content);
+              } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+              }
+
+              const copyBtn = event && event.currentTarget;
+              if (copyBtn) {
+                const originalTitle = copyBtn.title;
+                copyBtn.title = 'Copied!';
+                copyBtn.style.background = '#16a34a';
+                copyBtn.style.borderColor = '#16a34a';
+                setTimeout(() => {
+                  copyBtn.title = originalTitle;
+                  copyBtn.style.background = '';
+                  copyBtn.style.borderColor = '';
+                }, 1500);
+              }
+            } catch (error) {
+              console.error('Copy failed:', error);
+            }
+          },
+
+          getErrorMessage(error) {
+            const msg = error.message || '';
+            if (msg.includes('not found') || msg.includes('Not Found')) {
+              return '⚠ User not found. Please check the email address.';
+            }
+            if (msg.includes('Forbidden') || msg.includes('403')) {
+              return '⚠ Access denied. Admin privileges required.';
+            }
+            if (msg.includes('Unauthorized')) {
+              return '⚠ Authentication failed. Please login again.';
+            }
+            return '⚠ ' + (msg || 'An error occurred. Please try again.');
+          },
+
+          goBackToNormal() {
+            window.location.href = 'index.html';
+          },
+
+          logout() {
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_email');
+            window.location.href = 'login.html';
+          }
+        }
+      };
+
+      const app = new Vue({
+        el: "#admin-app",
+        render: (h) => h(AdminApp),
+      });
+    </script>
+  </body>
+</html>

@@ -119,6 +119,14 @@ export default {
               @click="$emit('open-sequence-dialog')"
             />
           </li>
+          <li v-if="leftTodosCount">
+            <input
+              type="button"
+              value="Convert RUSH"
+              class="btn-small action-import"
+              @click="$emit('convert-rush')"
+            />
+          </li>
         </ul>
       </div>
     </div>

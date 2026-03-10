@@ -6,6 +6,7 @@ const swaggerUi = require('swagger-ui-express');
 const connectDB = require('./src/db/db');
 const userRouter = require('./src/routers/UserRouter');
 const taskRouter = require('./src/routers/TaskRouter');
+const adminRouter = require('./src/routers/AdminRouter');
 const cors = require('cors');
 
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api', userRouter);
 app.use('/api', taskRouter);
+app.use('/api', adminRouter);
 
 // Health check  
 app.get('/health', (req, res) => {

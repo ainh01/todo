@@ -127,4 +127,36 @@ export class ApiService {
       }
     }, 'Create long task');
   }
+
+  // Admin endpoints
+  static async checkAdminStatus() {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/check-status`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
+    }, 'Check admin status');
+  }
+
+  static async getUserTasks(email) {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/tasks/${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
+    }, 'Get user tasks');
+  }
+
+  static async createTaskForUser(email, title) {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/admin/tasks/${encodeURIComponent(email)}`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ title })
+      });
+      return this.handleResponse(response);
+    }, 'Create task for user');
+  }
 }

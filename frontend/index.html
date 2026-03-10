@@ -85,5 +85,37 @@
     <script type="module" src="public/js/modules/fileHandlers.js"></script>
     <script type="module" src="public/js/components/TodoApp.js"></script>
     <script type="module" src="public/js/main.js"></script>
+    <script type="module">
+      import { ApiService } from './public/js/modules/apiService.js';
+
+      async function checkAdminStatus() {
+        try {
+          const response = await ApiService.checkAdminStatus();
+          if (response.isAdmin) {
+            const waitForNav = setInterval(() => {
+              const rushNav = document.querySelector('.rush-nav');
+              if (rushNav) {
+                clearInterval(waitForNav);
+                const adminNav = document.createElement('div');
+                adminNav.className = 'rush-nav';
+                adminNav.style.marginRight = '15px';
+                const adminBtn = document.createElement('button');
+                adminBtn.className = 'shortcut-title';
+                adminBtn.style.cssText = 'background-color: rgb(147, 51, 234); border-radius: 3px; color: white; margin-right: 8px;';
+                adminBtn.textContent = 'Admin Mode';
+                adminBtn.onclick = () => window.location.href = 'admin.html';
+                adminNav.appendChild(adminBtn);
+                rushNav.parentNode.insertBefore(adminNav, rushNav);
+              }
+            }, 100);
+            setTimeout(() => clearInterval(waitForNav), 10000);
+          }
+        } catch (error) {
+          console.log('Admin check skipped:', error);
+        }
+      }
+
+      checkAdminStatus();
+    </script>
   </body>
 </html>
