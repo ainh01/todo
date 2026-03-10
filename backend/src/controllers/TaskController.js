@@ -47,25 +47,34 @@ exports.createLongTasks = async (req, res) => {
     };
 
     const genAIStart = Date.now();
+
     let genAIResponse;
-    try {
-      genAIResponse = await axios.post(process.env.GENAI_ORIGIN, genAIPayload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
-        },
-        timeout: 120000 // 120 second timeout
-      });
-    } catch (error) {
+    let genAIError;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        genAIResponse = await axios.post(process.env.GENAI_ORIGIN, genAIPayload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
+          },
+          timeout: 120000 // 120 second timeout
+        });
+        break;
+      } catch (error) {
+        genAIError = error;
+      }
+    }
+
+    if (!genAIResponse) {
       return res.status(500).json({
         success: false,
-        error: `GenAI API error: ${error.response?.data?.error || error.message}`
+        error: `GenAI API error: ${genAIError.response?.data?.error || genAIError.message}`
       });
     }
 
     // Parse GenAI response to extract tasks
     const rawData = genAIResponse.data;
-    const responseContent = rawData?.choices?.[0]?.message?.content || '';
+    const responseContent = (rawData?.choices?.[0]?.message?.content || '').replace(/\n/g, ' ');
 
     const taskRegex = /fTask:\s*(.*?)\s*fEnd/g;
     const extractedTasks = [];
@@ -94,7 +103,7 @@ exports.createLongTasks = async (req, res) => {
       ? Math.max(...user.tasks.map(t => t.slot)) + 1
       : 1;
 
-    const newTasks = extractedTasks.reverse().map((taskTitle, index) => ({
+    const newTasks = extractedTasks.map((taskTitle, index) => ({
       task_id: startTaskId + index,
       title: taskTitle,
       slot: startSlot + index,

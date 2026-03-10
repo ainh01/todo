@@ -266,6 +266,7 @@ export default {
             syncErrors: [],
             isProcessingLongTask: false,
             longTaskMessage: '',
+            _lastRefreshAt: 0,
         };
     },
 
@@ -329,7 +330,12 @@ export default {
                 const fetchedTodos = await TodoStorage.fetch();
                 this.todos = fetchedTodos;
             } catch (error) {
-                await DialogUtils.alert('Failed to load todos: ' + error.message, 'Error');
+                if (error.isNetworkError) {
+                    console.warn('Failed to load todos (network error), will retry silently');
+                    this.silentRefresh();
+                } else {
+                    await DialogUtils.alert('Failed to load todos: ' + error.message, 'Error');
+                }
             } finally {
                 this.isLoading = false;
             }
@@ -709,8 +715,8 @@ export default {
                 }
                 await this.loadTodos();
             } catch (error) {
-                await DialogUtils.alert('Failed to restore todo: ' + error.message, 'Error');
-                await this.loadTodos();
+                console.error('Failed to restore todo:', error);
+                this.silentRefresh();
             }
         },
 
@@ -962,10 +968,11 @@ export default {
             });
 
             if (error.isNetworkError) {
-                console.warn(`${context} - Network error, changes are local only`);
-            } else {
-                DialogUtils.alert(`${context}: ${error.message || 'Unknown error'}`, 'Sync Error');
+                console.warn(`${context} - Network error, refreshing from server`);
             }
+            
+            // Silent refresh instead of showing modal
+            this.silentRefresh();
         },
 
         // Reconcile local state with server
@@ -981,6 +988,33 @@ export default {
             } catch (error) {
                 console.error('Sync failed:', error);
             }
+        },
+
+        // Silent refresh: throttled GET /tasks to recover from errors
+        silentRefresh() {
+            const now = Date.now();
+            if (now - this._lastRefreshAt < 2000) {
+                console.log('Silent refresh throttled (< 2s since last)');
+                return;
+            }
+            
+            this._lastRefreshAt = now;
+            
+            ApiService.getTasks()
+                .then(response => {
+                    const fetchedTodos = response.data || response;
+                    this.todos = fetchedTodos.map(todo => ({
+                        id: todo.task_id,
+                        title: todo.title,
+                        slot: todo.slot,
+                        completed: todo.finished || false,
+                        removed: false,
+                    }));
+                    console.log('Silent refresh succeeded, todos updated from server');
+                })
+                .catch(err => {
+                    console.warn('Silent refresh failed:', err);
+                });
         },
 
         navigateToRush() {

@@ -21,7 +21,7 @@ connectDB();
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 100,
+  max: 300,
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'
