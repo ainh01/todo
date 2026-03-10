@@ -57,7 +57,7 @@ exports.createLongTasks = async (req, res) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
           },
-          timeout: 120000 // 120 second timeout
+          timeout: 1200000 // 1200 second timeout
         });
         break;
       } catch (error) {
