@@ -35,15 +35,10 @@ exports.createLongTasks = async (req, res) => {
     const genAIPayload = {
       model: process.env.GENAI_MODEL,
       max_tokens: parseInt(process.env.GENAI_TOKENLIMIT),
-      thinking: {   
-        type: "enabled",   
-        budget_tokens: parseInt(process.env.GENAI_TOKENLIMIT)   
-      },
       messages: [{   
         role: "user",   
         content: process.env.GENAI_BASEPROMPT + title   
-      }],
-      output_config: { effort: "max" }
+      }]
     };
 
     const genAIStart = Date.now();
