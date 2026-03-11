@@ -959,7 +959,7 @@ export default {
         },
 
         async convertToRush() {
-            const activeTodos = this.todos.filter(todo => !todo.removed);
+            const activeTodos = this.todos.filter(todo => !todo.removed && !todo.completed);
 
             if (activeTodos.length === 0) {
                 await DialogUtils.alert('No tasks available to convert to RUSH mode.', 'Info');
@@ -981,7 +981,7 @@ export default {
                         id: Date.now() + Math.random(),
                         title: todo.title,
                         hl: hl,
-                        completed: todo.completed,
+                        completed: false,
                         allocatedTime: 0,
                         actualTime: 0,
                         startTime: null,
