@@ -302,6 +302,200 @@
       .timer-completion.completed.timer-early{
         text-decoration: none !important;
       }
+
+      /* ── Countdown overlay ───────────────────────────── */
+      .countdown-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(50, 56, 109, 0.92);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ── .demo root ───────────────────────────────────── */
+      .demo {
+        position: relative;
+        width: 500px;
+        height: 140px;
+        padding: 10px;
+        border-radius: 20px;
+        font-family: Helvetica, Arial, sans-serif;
+      }
+
+      /* ── colored blocks container ────────────────────── */
+      .demo__colored-blocks {
+        overflow: hidden;
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 500px;
+        height: 100%;
+        margin-left: -250px;
+        padding: 10px;
+        border-radius: 20px;
+        perspective: 1000px;
+        animation:
+          demoAnim 6s ease-in-out 1 both,
+          contAnim 6s 1 both;
+      }
+
+      .demo__colored-blocks-rotater {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        animation: rotation 1.3s linear infinite;
+      }
+
+      .demo__colored-blocks-inner {
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+        background: #32386D;
+        border-radius: inherit;
+      }
+
+      /* ── individual color wedges ─────────────────────── */
+      .demo__colored-block {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 300%;
+        height: 300%;
+        transform-origin: 0 0;
+      }
+
+      .demo__colored-block:nth-child(1) {
+        transform: rotate(0deg) skewX(30deg);
+        background-color: #FD3359;
+      }
+
+      .demo__colored-block:nth-child(2) {
+        transform: rotate(120deg) skewX(30deg);
+        background-color: #F4D302;
+      }
+
+      .demo__colored-block:nth-child(3) {
+        transform: rotate(240deg) skewX(30deg);
+        background-color: #21BDFF;
+      }
+
+      /* ── inner SVG wrapper ───────────────────────────── */
+      .demo__inner {
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* ── SVG numbers ─────────────────────────────────── */
+      .demo__numbers {
+        overflow: visible;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 100px;
+        height: 100px;
+        margin-left: -50px;
+        margin-top: -50px;
+      }
+
+      .demo__numbers-path {
+        fill: none;
+        stroke-width: 10px;
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 0, 518.055;
+        stroke-dashoffset: 0;
+        animation: numAnim 6s ease-in-out 1;
+        opacity: 0;
+      }
+
+      /* ── "Ready?" / "Go!" text ───────────────────── */
+      .demo__text {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 500px;
+        height: 100%;
+        margin-left: -250px;
+        text-align: center;
+        line-height: 140px;
+        font-size: 100px;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 15px;
+        transform: translateX(10px);
+        opacity: 0;
+        animation: hideTextReady 6s 1;
+      }
+
+      .demo__text--go {
+        animation: hideTextGo 6s 1;
+      }
+
+      /* ── Keyframes ───────────────────────────────────── */
+      /* Ready?(wide) 0-15 | 3(circle) 18-35 | 2 38-55 | 1 58-75 | Go!(wide) 80-100 */
+      @keyframes contAnim {
+        0%, 12%   { margin-left: -250px; width: 500px; }
+        18%, 75%  { margin-left: -70px;  width: 140px; }
+        80%, 100% { margin-left: -250px; width: 500px; }
+      }
+
+      @keyframes numAnim {
+        0%, 15% {
+          stroke-dasharray: 0, 518.055;
+          stroke-dashoffset: 0;
+          opacity: 0;
+        }
+        18%, 33% {
+          opacity: 1;
+          stroke-dasharray: 144.426, 518.055;
+          stroke-dashoffset: -40;
+        }
+        38%, 53% {
+          stroke-dasharray: 136.022, 518.055;
+          stroke-dashoffset: -227.239;
+        }
+        58% {
+          stroke-dasharray: 113.475, 518.055;
+          stroke-dashoffset: -445.9;
+        }
+        63%, 73% {
+          stroke-dasharray: 72.155, 518.055;
+          stroke-dashoffset: -445.9;
+        }
+        74%      { opacity: 1; }
+        78%, 100% { opacity: 0; }
+      }
+
+      @keyframes rotation {
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes demoAnim {
+        0%, 12%   { border-radius: 20px; transform: rotate(0deg);    }
+        18%, 33%  { border-radius: 50%;  transform: rotate(360deg);  }
+        38%, 53%  { border-radius: 0;    transform: rotate(720deg);  }
+        58%, 75%  { border-radius: 50%;  transform: rotate(1080deg); }
+        80%, 100% { border-radius: 20px; transform: rotate(1440deg); }
+      }
+
+      @keyframes hideTextReady {
+        0%        { opacity: 0; }
+        3%, 12%   { opacity: 1; }
+        16%, 100% { opacity: 0; }
+      }
+
+      @keyframes hideTextGo {
+        0%, 76%   { opacity: 0; }
+        80%, 100% { opacity: 1; }
+      }
     </style>
   </head>
 
@@ -323,6 +517,38 @@
 
         template: `
           <div>
+            <div v-if="showCountdown" class="countdown-overlay">
+              <div class="demo">
+                <div class="demo__colored-blocks">
+                  <div class="demo__colored-blocks-rotater">
+                    <div class="demo__colored-block"></div>
+                    <div class="demo__colored-block"></div>
+                    <div class="demo__colored-block"></div>
+                  </div>
+                  <div class="demo__colored-blocks-inner"></div>
+                  <div class="demo__text">Ready?</div>
+                  <div class="demo__text demo__text--go">Go!</div>
+                </div>
+                <div class="demo__inner">
+                  <svg class="demo__numbers" viewBox="0 0 100 100">
+                    <defs>
+                      <path class="demo__num-path-1" d="M40,28 55,22 55,78"/>
+                      <path class="demo__num-join-1-2" d="M55,78 55,83 a17,17 0 1,0 34,0 a20,10 0 0,0 -20,-10"/>
+                      <path class="demo__num-path-2" d="M69,73 l-35,0 l30,-30 a16,16 0 0,0 -22.6,-22.6 l-7,7"/>
+                      <path class="demo__num-join-2-3" d="M28,69 Q25,44 34.4,27.4"/>
+                      <path class="demo__num-path-3" d="M30,20 60,20 40,50 a18,15 0 1,1 -12,19"/>
+                    </defs>
+                    <path class="demo__numbers-path"
+                          d="M-10,20 60,20 40,50 a18,15 0 1,1 -12,19
+                             Q25,44 34.4,27.4
+                             l7,-7 a16,16 0 0,1 22.6,22.6 l-30,30 l35,0 L69,73
+                             a20,10 0 0,1 20,10 a17,17 0 0,1 -34,0 L55,83
+                             l0,-61 L40,28" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             <div class="container header">
               <div class="todo-input">
                 <h1 class="title" style="color: var(--rush-red);">
@@ -558,6 +784,7 @@
 
         data() {
           return {
+            showCountdown: false,
             tasks: [],
             newTaskTitle: "",
             newTaskHL: 1,
@@ -649,6 +876,14 @@
         },
 
         methods: {
+          runCountdownThenStart() {
+            this.showCountdown = true;
+            setTimeout(() => {
+              this.showCountdown = false;
+              this.startSession();
+            }, 6000);
+          },
+
           addTask() {
             if (!this.newTaskTitle.trim()) return;
 
@@ -935,7 +1170,7 @@
 
           toggleSession() {
             if (!this.sessionActive && !this.sessionPaused) {
-              this.startSession();
+              this.runCountdownThenStart();
             } else if (this.sessionActive) {
               this.pauseSession();
             } else if (this.sessionPaused) {
