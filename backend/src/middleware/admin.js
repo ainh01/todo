@@ -1,6 +1,5 @@
 const User = require('../models/User');
 
-// Parse admin list from environment variable
 const getAdminEmails = () => {
   const adminList = process.env.ADMIN_LIST || '';
   return adminList.split(',').map(email => email.trim().toLowerCase()).filter(Boolean);

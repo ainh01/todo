@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Key  = require('../models/Key');
+const Task = require('../models/Task');
 const { generateToken } = require('../middleware/auth');
 
 exports.createUser = async (req, res) => {
@@ -15,6 +17,9 @@ exports.createUser = async (req, res) => {
 
     const user = new User({ email, pass });
     await user.save();
+
+    await Key.create({ userId: user._id, key: 'Default' });
+    await Task.create({ userId: user._id, key: 'Default', tasks: [] });
 
     const token = generateToken(user._id);
 

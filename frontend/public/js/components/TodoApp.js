@@ -167,6 +167,7 @@ export default {
           :completedTodosCount="completedTodosCount"
           :isShow="isShow"
           :shortCut="shortCut"
+          :currentKey="currentKey"
           @update:intention="intention = $event"
           @mark-all-completed="markAllAsCompleted"
           @clear-completed="clearCompleted"
@@ -176,6 +177,7 @@ export default {
           @toggle-sidebar="toggleSidebar"
           @open-sequence-dialog="openSequenceDialog"
           @convert-rush="convertToRush"
+          @open-space-dialog="openSpaceDialog"
         />
       </div>
 
@@ -236,6 +238,46 @@ export default {
         @close="closeSequenceDialog"
         @create="handleSequenceCreate"
       />
+
+      <div class="custom-alert-overlay" v-if="showSpaceDialog">
+        <div class="custom-alert">
+          <div class="custom-alert-title">Change Space</div>
+          <div class="custom-alert-content">
+            <div v-for="space in spaceList" :key="space.key" style="margin-bottom:8px">
+              <label style="cursor:pointer">
+                <input type="radio" :value="space.key" v-model="selectedSpaceKey" />
+                {{ space.key }}
+                <span style="opacity:.6; font-size:.85em">({{ space.taskCount }} tasks)</span>
+              </label>
+            </div>
+            <div style="margin-bottom:8px">
+              <label style="cursor:pointer">
+                <input type="radio" value="__new__" v-model="selectedSpaceKey" />
+                Create new...
+              </label>
+              <input
+                v-if="selectedSpaceKey === '__new__'"
+                type="text"
+                v-model="newSpaceName"
+                placeholder="New space name"
+                style="margin-top:4px; width:100%; padding:4px 6px; box-sizing:border-box;"
+                @keyup.enter="confirmChangeSpace"
+              />
+            </div>
+            <div v-if="!spaceList.length" style="opacity:.6">Loading sets...</div>
+          </div>
+          <div class="custom-alert-buttons">
+            <button class="custom-alert-btn cancel"
+              @click="showSpaceDialog = false"
+              :disabled="isChangingSpace">Cancel</button>
+            <button class="custom-alert-btn confirm"
+              @click="confirmChangeSpace"
+              :disabled="isChangingSpace || !selectedSpaceKey || (selectedSpaceKey === '__new__' && !newSpaceName.trim())">
+              {{ isChangingSpace ? 'Changing...' : 'Change' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   `,
 
@@ -262,18 +304,37 @@ export default {
             showSequenceDialog: false,
             sound: new Audio('/public/sound/confetti.mp3'),
             confettiColors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'],
-            // Optimistic update tracking
             pendingOperations: new Set(),
             syncErrors: [],
             isProcessingLongTask: false,
             longTaskMessage: '',
             _lastRefreshAt: 0,
+            showSpaceDialog: false,
+            spaceList: [],
+            selectedSpaceKey: '',
+            isChangingSpace: false,
+            currentKey: '',
+            newSpaceName: '',
         };
     },
 
     async created() {
         await this.loadTodos();
         this.setupLanguage();
+        try {
+            const res = await ApiService.getSets();
+            const sets = res.data || [];
+            const stored = localStorage.getItem('current_set_key');
+            if (stored && sets.some(s => s.key === stored)) {
+                this.currentKey = stored;
+            } else if (sets.length) {
+                this.currentKey = sets[0].key;
+            } else {
+                this.currentKey = 'Default';
+            }
+        } catch(e) {
+            this.currentKey = localStorage.getItem('current_set_key') || 'Default';
+        }
     },
 
     computed: {
@@ -376,11 +437,10 @@ export default {
                 this.checkEmpty = false;
                 this.delayTime = '0';
             } else {
-                // Non-blocking: clear input immediately so user can keep typing
                 this.newTodoTitle = '';
                 this.checkEmpty = false;
                 this.delayTime = '0';
-                this.handleRegularTask(taskTitle); // fire-and-forget
+                this.handleRegularTask(taskTitle);
             }
         },
 
@@ -433,14 +493,12 @@ export default {
         },
 
         async handleRegularTask(title) {
-            // OPTIMISTIC: Add to list immediately with saving indicator
             const optimisticTodo = TodoStorage.createOptimisticTodo(title);
             optimisticTodo.saving = true;
             optimisticTodo.saveError = false;
             optimisticTodo.saveErrorMsg = '';
             this.todos.push(optimisticTodo);
 
-            // Background API call
             const operationId = `add_${optimisticTodo.id}`;
             this.pendingOperations.add(operationId);
 
@@ -448,7 +506,6 @@ export default {
                 const response = await ApiService.createTask(optimisticTodo.title);
                 const serverTodo = response.data || response;
 
-                // Replace optimistic todo with confirmed server response
                 const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTodo.id);
                 if (optimisticIndex !== -1) {
                     this.todos.splice(optimisticIndex, 1, {
@@ -460,7 +517,6 @@ export default {
                     });
                 }
             } catch (error) {
-                // Show inline error on the task — do not remove it
                 const idx = this.todos.findIndex(t => t.id === optimisticTodo.id);
                 if (idx !== -1) {
                     this.todos[idx].saving = false;
@@ -509,19 +565,16 @@ export default {
         },
 
         async markAsCompleted(todo) {
-            // OPTIMISTIC: Update UI immediately
             const originalCompleted = todo.completed;
             todo.completed = true;
             this.celebrateCompletion();
 
-            // Background API call
             const operationId = `complete_${todo.id}`;
             this.pendingOperations.add(operationId);
 
             try {
-                await ApiService.finishTask(todo.id, true);
+                await ApiService.finishTask(todo.id);
             } catch (error) {
-                // ROLLBACK: Revert completion state
                 todo.completed = originalCompleted;
                 this.handleOptimisticError(error, 'Failed to mark as completed');
             } finally {
@@ -530,18 +583,15 @@ export default {
         },
 
         async markAsUncompleted(todo) {
-            // OPTIMISTIC: Update UI immediately
             const originalCompleted = todo.completed;
             todo.completed = false;
 
-            // Background API call
             const operationId = `uncomplete_${todo.id}`;
             this.pendingOperations.add(operationId);
 
             try {
-                await ApiService.finishTask(todo.id, false);
+                await ApiService.finishTask(todo.id);
             } catch (error) {
-                // ROLLBACK: Revert completion state
                 todo.completed = originalCompleted;
                 this.handleOptimisticError(error, 'Failed to mark as uncompleted');
             } finally {
@@ -583,7 +633,6 @@ export default {
                 return;
             }
 
-            // OPTIMISTIC: Mark all as completed immediately
             const originalStates = incompleteTodos.map(todo => ({
                 todo,
                 originalCompleted: todo.completed
@@ -592,7 +641,6 @@ export default {
             incompleteTodos.forEach(todo => { todo.completed = true; });
             this.celebrateCompletion();
 
-            // Background API calls
             const operationId = `markAll_${Date.now()}`;
             this.pendingOperations.add(operationId);
 
@@ -600,10 +648,9 @@ export default {
                 await Promise.all(
                     incompleteTodos
                         .filter(todo => !todo.isOptimistic)
-                        .map(todo => ApiService.finishTask(todo.id, true))
+                        .map(todo => ApiService.finishTask(todo.id))
                 );
             } catch (error) {
-                // ROLLBACK: Revert completion states
                 originalStates.forEach(({ todo, originalCompleted }) => {
                     todo.completed = originalCompleted;
                 });
@@ -636,11 +683,9 @@ export default {
                 return;
             }
 
-            // OPTIMISTIC: Title already updated in UI via v-model
             const originalTitle = this.editedTodo ? this.editedTodo.originalTitle : todo.title;
             this.editedTodo = null;
 
-            // Background API call
             const operationId = `edit_${todo.id}`;
             this.pendingOperations.add(operationId);
 
@@ -649,7 +694,6 @@ export default {
                     await ApiService.updateTask(todo.id, todo.title);
                 }
             } catch (error) {
-                // ROLLBACK: Revert title
                 todo.title = originalTitle;
                 this.handleOptimisticError(error, 'Failed to update todo');
             } finally {
@@ -665,7 +709,6 @@ export default {
         },
 
         async removeTodo(todo) {
-            // OPTIMISTIC: Move to recycle bin immediately
             const todoIndex = this.todos.indexOf(todo);
             if (todoIndex === -1) return;
 
@@ -673,7 +716,6 @@ export default {
             removedTodo.removed = true;
             this.recycleBin.unshift(removedTodo);
 
-            // Background API call (skip for optimistic todos)
             if (!todo.isOptimistic) {
                 const operationId = `remove_${todo.id}`;
                 this.pendingOperations.add(operationId);
@@ -681,7 +723,6 @@ export default {
                 try {
                     await ApiService.deleteTask(todo.id);
                 } catch (error) {
-                    // ROLLBACK: Restore todo
                     const recycleIndex = this.recycleBin.indexOf(removedTodo);
                     if (recycleIndex !== -1) {
                         this.recycleBin.splice(recycleIndex, 1);
@@ -731,7 +772,6 @@ export default {
                 return;
             }
 
-            // OPTIMISTIC: Move completed todos to recycle bin immediately
             const movedTodos = [];
             completedTodos.forEach(todo => {
                 const index = this.todos.indexOf(todo);
@@ -743,7 +783,6 @@ export default {
                 }
             });
 
-            // Background API calls
             const operationId = `clearCompleted_${Date.now()}`;
             this.pendingOperations.add(operationId);
 
@@ -754,7 +793,6 @@ export default {
                         .map(todo => ApiService.deleteTask(todo.id))
                 );
             } catch (error) {
-                // ROLLBACK: Restore completed todos
                 movedTodos.reverse().forEach(({ todo, originalIndex }) => {
                     const recycleIndex = this.recycleBin.indexOf(todo);
                     if (recycleIndex !== -1) {
@@ -778,7 +816,6 @@ export default {
                 return;
             }
 
-            // OPTIMISTIC: Move all todos to recycle bin immediately
             const allTodos = [...this.todos];
             const allRecycleBin = [...this.recycleBin];
 
@@ -787,7 +824,6 @@ export default {
             );
             this.todos = [];
 
-            // Background API calls
             const operationId = `clearAll_${Date.now()}`;
             this.pendingOperations.add(operationId);
 
@@ -799,7 +835,6 @@ export default {
 
                 await Promise.all(allTaskIds.map(id => ApiService.deleteTask(id)));
             } catch (error) {
-                // ROLLBACK: Restore all todos
                 this.todos = allTodos;
                 this.recycleBin = allRecycleBin;
                 this.handleOptimisticError(error, 'Failed to clear all items');
@@ -834,8 +869,6 @@ export default {
                 const savedOriginalIndex = this.originalIndex;
                 const savedDragIndex = this.dragIndex;
 
-                // OPTIMISTIC: UI already updated via drag operations
-                // Background API call
                 const operationId = `move_${savedDraggedItem.id}`;
                 this.pendingOperations.add(operationId);
 
@@ -848,7 +881,6 @@ export default {
                         await ApiService.moveTask(savedDraggedItem.id, targetSlot);
                     }
                 } catch (error) {
-                    // ROLLBACK: Revert drag operation
                     const movedItem = this.filteredTodos.splice(savedDragIndex, 1)[0];
                     this.filteredTodos.splice(savedOriginalIndex, 0, movedItem);
                     this.handleOptimisticError(error, 'Failed to move task');
@@ -911,8 +943,39 @@ export default {
             this.showSequenceDialog = false;
         },
 
+        async openSpaceDialog() {
+            this.showSpaceDialog = true;
+            this.selectedSpaceKey = this.currentKey;
+            this.spaceList = [];
+            try {
+                const res = await ApiService.getSets();
+                this.spaceList = res.data || [];
+            } catch (e) {
+                console.error('Failed to load sets:', e);
+            }
+        },
+
+        async confirmChangeSpace() {
+            const key = this.selectedSpaceKey === '__new__'
+                ? this.newSpaceName.trim()
+                : this.selectedSpaceKey;
+            if (!key) return;
+            this.isChangingSpace = true;
+            try {
+                await ApiService.switchSet(key);
+            } catch (e) {
+                console.error('Switch set error (reloading anyway):', e);
+            } finally {
+                this.currentKey = key;
+                localStorage.setItem('current_set_key', this.currentKey);
+                this.showSpaceDialog = false;
+                this.isChangingSpace = false;
+                this.newSpaceName = '';
+                await this.loadTodos();
+            }
+        },
+
         async handleSequenceCreate(tasks) {
-            // OPTIMISTIC: Add all tasks immediately
             const optimisticTasks = tasks.map(task =>
                 TodoStorage.createOptimisticTodo(task.title)
             );
@@ -923,7 +986,6 @@ export default {
 
             this.closeSequenceDialog();
 
-            // Background API calls
             const operationId = `sequence_${Date.now()}`;
             this.pendingOperations.add(operationId);
 
@@ -932,7 +994,6 @@ export default {
                     const response = await ApiService.createTask(tasks[i].title);
                     const serverTask = response.data || response;
 
-                    // Replace optimistic task with server response
                     const optimisticIndex = this.todos.findIndex(t => t.id === optimisticTasks[i].id);
                     if (optimisticIndex !== -1) {
                         this.todos.splice(optimisticIndex, 1, {
@@ -945,7 +1006,6 @@ export default {
                     }
                 }
             } catch (error) {
-                // ROLLBACK: Remove all remaining optimistic tasks
                 optimisticTasks.forEach(optimisticTask => {
                     const index = this.todos.findIndex(t => t.id === optimisticTask.id);
                     if (index !== -1) {
@@ -998,7 +1058,6 @@ export default {
             }
         },
 
-        // Error handling for optimistic updates
         handleOptimisticError(error, context) {
             console.error(`${context}:`, error);
 
@@ -1011,12 +1070,10 @@ export default {
             if (error.isNetworkError) {
                 console.warn(`${context} - Network error, refreshing from server`);
             }
-            
-            // Silent refresh instead of showing modal
+
             this.silentRefresh();
         },
 
-        // Reconcile local state with server
         async syncWithServer() {
             if (this.pendingOperations.size > 0) {
                 console.log('Sync skipped: operations pending');
@@ -1031,16 +1088,15 @@ export default {
             }
         },
 
-        // Silent refresh: throttled GET /tasks to recover from errors
         silentRefresh() {
             const now = Date.now();
             if (now - this._lastRefreshAt < 2000) {
                 console.log('Silent refresh throttled (< 2s since last)');
                 return;
             }
-            
+
             this._lastRefreshAt = now;
-            
+
             ApiService.getTasks()
                 .then(response => {
                     const fetchedTodos = response.data || response;
@@ -1066,7 +1122,6 @@ export default {
     },
 
     mounted() {
-        // Sync every 30 seconds when no operations are pending but errors exist
         this.syncInterval = setInterval(() => {
             if (this.pendingOperations.size === 0 && this.syncErrors.length > 0) {
                 this.syncWithServer();

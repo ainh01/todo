@@ -22,7 +22,6 @@ export class TodoStorage {
             throw error;
         }
     }
-    // Optimistic update helpers
     static generateOptimisticId() {
         return `temp_${Date.now()}_${Math.random()}`;
     }

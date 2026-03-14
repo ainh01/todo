@@ -1,9 +1,10 @@
 export const API_CONFIG = {
-  BASE_URL: '__BASE_URL__', //'__BASE_URL__',//'http://localhost:3000/api', 
+  BASE_URL: '__BASE_URL__', //'__BASE_URL__',//'http://localhost:3000/api',
   ENDPOINTS: {  
     REGISTER: '/users/register',  
     LOGIN: '/users/login',  
     TASKS: '/tasks',
-    LONG_TASKS: '/longTasks'
+    LONG_TASKS: '/longTasks',
+    SETS: '/sets'
   }  
 };  

@@ -24,7 +24,6 @@ export class ApiService {
     return data;
   }
 
-  // Enhanced error handling for optimistic updates
   static async safeApiCall(apiCall, errorContext = '') {
     try {
       return await apiCall();
@@ -72,12 +71,11 @@ export class ApiService {
     }, 'Update task');
   }
 
-  static async finishTask(taskId, finished = true) {
+  static async finishTask(taskId) {
     return this.safeApiCall(async () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TASKS}/${taskId}/finish`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ finished })
+        headers: this.getAuthHeaders()
       });
       return this.handleResponse(response);
     }, 'Finish task');
@@ -104,6 +102,27 @@ export class ApiService {
     }, 'Delete task');
   }
 
+  static async getSets() {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SETS}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+      return this.handleResponse(response);
+    }, 'Get sets');
+  }
+
+  static async switchSet(key) {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SETS}`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ key })
+      });
+      return this.handleResponse(response);
+    }, 'Switch set');
+  }
+
   static async createLongTask(title) {
     return this.safeApiCall(async () => {
       const controller = new AbortController();
@@ -128,7 +147,6 @@ export class ApiService {
     }, 'Create long task');
   }
 
-  // Admin endpoints
   static async checkAdminStatus() {
     return this.safeApiCall(async () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/admin/check-status`, {
@@ -149,12 +167,12 @@ export class ApiService {
     }, 'Get user tasks');
   }
 
-  static async createTaskForUser(email, title) {
+  static async createTaskForUser(email, title, key) {
     return this.safeApiCall(async () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/admin/tasks/${encodeURIComponent(email)}`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify({ title })
+        body: JSON.stringify({ title, key })
       });
       return this.handleResponse(response);
     }, 'Create task for user');

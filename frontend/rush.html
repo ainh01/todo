@@ -18,20 +18,29 @@
     <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script src="public/js/vue.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js" integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx" crossorigin="anonymous"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+      integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+      integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+      crossorigin="anonymous"
+    ></script>
     <style>
       @font-face {
-        font-family: 'Achievement';
-        src: url('/public/font/achievement.otf') format('opentype');
+        font-family: "Achievement";
+        src: url("/public/font/achievement.otf") format("opentype");
         font-weight: normal;
         font-style: normal;
       }
 
       .special-text {
-        font-family: 'Achievement', sans-serif;
+        font-family: "Achievement", sans-serif;
       }
-
 
       :root {
         --rush-red: #dc2626;
@@ -161,7 +170,7 @@
         font-size: 48px;
         font-weight: bold;
         margin: 16px 0;
-        font-family: 'Achievement', sans-serif;
+        font-family: "Achievement", sans-serif;
       }
 
       .rating-sss {
@@ -299,11 +308,10 @@
       .completed .timer-completion {
         text-decoration: none !important;
       }
-      .timer-completion.completed.timer-early{
+      .timer-completion.completed.timer-early {
         text-decoration: none !important;
       }
 
-      /* ── Countdown overlay ───────────────────────────── */
       .countdown-overlay {
         position: fixed;
         inset: 0;
@@ -314,7 +322,6 @@
         justify-content: center;
       }
 
-      /* ── .demo root ───────────────────────────────────── */
       .demo {
         position: relative;
         width: 500px;
@@ -324,7 +331,6 @@
         font-family: Helvetica, Arial, sans-serif;
       }
 
-      /* ── colored blocks container ────────────────────── */
       .demo__colored-blocks {
         overflow: hidden;
         position: absolute;
@@ -355,11 +361,10 @@
         overflow: hidden;
         position: relative;
         height: 100%;
-        background: #32386D;
+        background: #32386d;
         border-radius: inherit;
       }
 
-      /* ── individual color wedges ─────────────────────── */
       .demo__colored-block {
         position: absolute;
         left: 50%;
@@ -371,20 +376,19 @@
 
       .demo__colored-block:nth-child(1) {
         transform: rotate(0deg) skewX(30deg);
-        background-color: #FD3359;
+        background-color: #fd3359;
       }
 
       .demo__colored-block:nth-child(2) {
         transform: rotate(120deg) skewX(30deg);
-        background-color: #F4D302;
+        background-color: #f4d302;
       }
 
       .demo__colored-block:nth-child(3) {
         transform: rotate(240deg) skewX(30deg);
-        background-color: #21BDFF;
+        background-color: #21bdff;
       }
 
-      /* ── inner SVG wrapper ───────────────────────────── */
       .demo__inner {
         overflow: hidden;
         position: relative;
@@ -392,7 +396,6 @@
         height: 100%;
       }
 
-      /* ── SVG numbers ─────────────────────────────────── */
       .demo__numbers {
         overflow: visible;
         position: absolute;
@@ -416,7 +419,6 @@
         opacity: 0;
       }
 
-      /* ── "Ready?" / "Go!" text ───────────────────── */
       .demo__text {
         position: absolute;
         left: 50%;
@@ -439,26 +441,39 @@
         animation: hideTextGo 6s 1;
       }
 
-      /* ── Keyframes ───────────────────────────────────── */
-      /* Ready?(wide) 0-15 | 3(circle) 18-35 | 2 38-55 | 1 58-75 | Go!(wide) 80-100 */
       @keyframes contAnim {
-        0%, 12%   { margin-left: -250px; width: 500px; }
-        18%, 75%  { margin-left: -70px;  width: 140px; }
-        80%, 100% { margin-left: -250px; width: 500px; }
+        0%,
+        12% {
+          margin-left: -250px;
+          width: 500px;
+        }
+        18%,
+        75% {
+          margin-left: -70px;
+          width: 140px;
+        }
+        80%,
+        100% {
+          margin-left: -250px;
+          width: 500px;
+        }
       }
 
       @keyframes numAnim {
-        0%, 15% {
+        0%,
+        15% {
           stroke-dasharray: 0, 518.055;
           stroke-dashoffset: 0;
           opacity: 0;
         }
-        18%, 33% {
+        18%,
+        33% {
           opacity: 1;
           stroke-dasharray: 144.426, 518.055;
           stroke-dashoffset: -40;
         }
-        38%, 53% {
+        38%,
+        53% {
           stroke-dasharray: 136.022, 518.055;
           stroke-dashoffset: -227.239;
         }
@@ -466,35 +481,77 @@
           stroke-dasharray: 113.475, 518.055;
           stroke-dashoffset: -445.9;
         }
-        63%, 73% {
+        63%,
+        73% {
           stroke-dasharray: 72.155, 518.055;
           stroke-dashoffset: -445.9;
         }
-        74%      { opacity: 1; }
-        78%, 100% { opacity: 0; }
+        74% {
+          opacity: 1;
+        }
+        78%,
+        100% {
+          opacity: 0;
+        }
       }
 
       @keyframes rotation {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       @keyframes demoAnim {
-        0%, 12%   { border-radius: 20px; transform: rotate(0deg);    }
-        18%, 33%  { border-radius: 50%;  transform: rotate(360deg);  }
-        38%, 53%  { border-radius: 0;    transform: rotate(720deg);  }
-        58%, 75%  { border-radius: 50%;  transform: rotate(1080deg); }
-        80%, 100% { border-radius: 20px; transform: rotate(1440deg); }
+        0%,
+        12% {
+          border-radius: 20px;
+          transform: rotate(0deg);
+        }
+        18%,
+        33% {
+          border-radius: 50%;
+          transform: rotate(360deg);
+        }
+        38%,
+        53% {
+          border-radius: 0;
+          transform: rotate(720deg);
+        }
+        58%,
+        75% {
+          border-radius: 50%;
+          transform: rotate(1080deg);
+        }
+        80%,
+        100% {
+          border-radius: 20px;
+          transform: rotate(1440deg);
+        }
       }
 
       @keyframes hideTextReady {
-        0%        { opacity: 0; }
-        3%, 12%   { opacity: 1; }
-        16%, 100% { opacity: 0; }
+        0% {
+          opacity: 0;
+        }
+        3%,
+        12% {
+          opacity: 1;
+        }
+        16%,
+        100% {
+          opacity: 0;
+        }
       }
 
       @keyframes hideTextGo {
-        0%, 76%   { opacity: 0; }
-        80%, 100% { opacity: 1; }
+        0%,
+        76% {
+          opacity: 0;
+        }
+        80%,
+        100% {
+          opacity: 1;
+        }
       }
     </style>
   </head>
@@ -515,271 +572,270 @@
       const RushApp = {
         name: "RushApp",
 
-        template: `
-          <div>
-            <div v-if="showCountdown" class="countdown-overlay">
-              <div class="demo">
-                <div class="demo__colored-blocks">
-                  <div class="demo__colored-blocks-rotater">
-                    <div class="demo__colored-block"></div>
-                    <div class="demo__colored-block"></div>
-                    <div class="demo__colored-block"></div>
-                  </div>
-                  <div class="demo__colored-blocks-inner"></div>
-                  <div class="demo__text">Ready?</div>
-                  <div class="demo__text demo__text--go">Go!</div>
-                </div>
-                <div class="demo__inner">
-                  <svg class="demo__numbers" viewBox="0 0 100 100">
-                    <defs>
-                      <path class="demo__num-path-1" d="M40,28 55,22 55,78"/>
-                      <path class="demo__num-join-1-2" d="M55,78 55,83 a17,17 0 1,0 34,0 a20,10 0 0,0 -20,-10"/>
-                      <path class="demo__num-path-2" d="M69,73 l-35,0 l30,-30 a16,16 0 0,0 -22.6,-22.6 l-7,7"/>
-                      <path class="demo__num-join-2-3" d="M28,69 Q25,44 34.4,27.4"/>
-                      <path class="demo__num-path-3" d="M30,20 60,20 40,50 a18,15 0 1,1 -12,19"/>
-                    </defs>
-                    <path class="demo__numbers-path"
-                          d="M-10,20 60,20 40,50 a18,15 0 1,1 -12,19
-                             Q25,44 34.4,27.4
-                             l7,-7 a16,16 0 0,1 22.6,22.6 l-30,30 l35,0 L69,73
-                             a20,10 0 0,1 20,10 a17,17 0 0,1 -34,0 L55,83
-                             l0,-61 L40,28" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+        template: `  
+          <div>  
+            <div v-if="showCountdown" class="countdown-overlay">  
+              <div class="demo">  
+                <div class="demo__colored-blocks">  
+                  <div class="demo__colored-blocks-rotater">  
+                    <div class="demo__colored-block"></div>  
+                    <div class="demo__colored-block"></div>  
+                    <div class="demo__colored-block"></div>  
+                  </div>  
+                  <div class="demo__colored-blocks-inner"></div>  
+                  <div class="demo__text">Ready?</div>  
+                  <div class="demo__text demo__text--go">Now!</div>  
+                </div>  
+                <div class="demo__inner">  
+                  <svg class="demo__numbers" viewBox="0 0 100 100">  
+                    <defs>  
+                      <path class="demo__num-path-1" d="M40,28 55,22 55,78"/>  
+                      <path class="demo__num-join-1-2" d="M55,78 55,83 a17,17 0 1,0 34,0 a20,10 0 0,0 -20,-10"/>  
+                      <path class="demo__num-path-2" d="M69,73 l-35,0 l30,-30 a16,16 0 0,0 -22.6,-22.6 l-7,7"/>  
+                      <path class="demo__num-join-2-3" d="M28,69 Q25,44 34.4,27.4"/>  
+                      <path class="demo__num-path-3" d="M30,20 60,20 40,50 a18,15 0 1,1 -12,19"/>  
+                    </defs>  
+                    <path class="demo__numbers-path"  
+                          d="M-10,20 60,20 40,50 a18,15 0 1,1 -12,19  
+                             Q25,44 34.4,27.4  
+                             l7,-7 a16,16 0 0,1 22.6,22.6 l-30,30 l35,0 L69,73  
+                             a20,10 0 0,1 20,10 a17,17 0 0,1 -34,0 L55,83  
+                             l0,-61 L40,28" />  
+                  </svg>  
+                </div>  
+              </div>  
+            </div>  
 
-            <div class="container header">
-              <div class="todo-input">
-                <h1 class="title" style="color: var(--rush-red);">
-                  🚀 RUSH MODE
-                </h1>
+            <div class="container header">  
+              <div class="todo-input">  
+                <h1 class="title" style="color: var(--rush-red);">  
+                  🚀 RUSH MODE  
+                </h1>  
                 
-                <div class="ttc-input">
-                  <label><strong>Total Time (minutes):</strong></label>
-                  <input 
-                    type="number" 
-                    v-model.number="totalTimeMinutes"
-                    :disabled="sessionActive"
-                    min="1"
-                    placeholder="60"
-                    @input="recalculateAllocatedTimes"
-                    autocomplete="off"
-                  />
-                </div>
+                <div class="ttc-input">  
+                  <label><strong>Total Time (minutes):</strong></label>  
+                  <input   
+                    type="number"   
+                    v-model.number="totalTimeMinutes"  
+                    :disabled="sessionActive"  
+                    min="1"  
+                    placeholder="60"  
+                    @input="recalculateAllocatedTimes"  
+                    autocomplete="off"  
+                  />  
+                </div>  
                 
-                <div class="add-content-wrapper">
-                  <input
-                    type="text"
-                    class="add-content"
-                    placeholder="Add a rush task..."
-                    v-model="newTaskTitle"
-                    @keyup.enter="addTask"
-                    :disabled="sessionActive"
-                    style="padding-right: 200px;"
-                    autocomplete="off"
-                  />
+                <div class="add-content-wrapper">  
+                  <input  
+                    type="text"  
+                    class="add-content"  
+                    placeholder="Add a rush task..."  
+                    v-model="newTaskTitle"  
+                    @keyup.enter="addTask"  
+                    :disabled="sessionActive"  
+                    style="padding-right: 200px;"  
+                    autocomplete="off"  
+                  />  
                   
-                  <label style="position: absolute; right: 130px; top: 60%; transform: translateY(-60%); font-weight: bold;">
-                    HL:
-                    <input
-                      type="number"
-                      v-model.number="newTaskHL"
-                      min="1"
-                      max="10"
-                      class="hardness-input"
-                      :disabled="sessionActive"
-                      autocomplete="off"
-                    />
-                  </label>
+                  <label style="position: absolute; right: 130px; top: 60%; transform: translateY(-60%); font-weight: bold;">  
+                    HL:  
+                    <input  
+                      type="number"  
+                      v-model.number="newTaskHL"  
+                      min="1"  
+                      max="10"  
+                      class="hardness-input"  
+                      :disabled="sessionActive"  
+                      autocomplete="off"  
+                    />  
+                  </label>  
                   
-                  <button 
-                    class="btn submit-btn" 
-                    type="button" 
-                    @click="addTask"
-                    :disabled="sessionActive"
-                    style="background: var(--rush-red);"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
+                  <button   
+                    class="btn submit-btn"   
+                    type="button"   
+                    @click="addTask"  
+                    :disabled="sessionActive"  
+                    style="background: var(--rush-red);"  
+                  >  
+                    Add  
+                  </button>  
+                </div>  
+              </div>  
+            </div>  
 
-            <div class="session-controls">
-              <button 
-                class="rush-btn rush-btn-primary"
-                @click="toggleSession"
-                :disabled="tasks.length === 0"
-              >
-                {{ sessionActive ? 'PAUSE' : (sessionPaused ? 'RESUME' : 'START RUSH') }}
-              </button>
+            <div class="session-controls">  
+              <button   
+                class="rush-btn rush-btn-primary"  
+                @click="toggleSession"  
+                :disabled="tasks.length === 0"  
+              >  
+                {{ sessionActive ? 'PAUSE' : (sessionPaused ? 'RESUME' : 'START RUSH') }}  
+              </button>  
               
-              <button 
-                class="rush-btn"
-                @click="endSession"
-                :disabled="!sessionActive && !sessionPaused"
-              >
-                End Session
-              </button>
+              <button   
+                class="rush-btn"  
+                @click="endSession"  
+                :disabled="!sessionActive && !sessionPaused"  
+              >  
+                End Session  
+              </button>  
               
-              <button 
-                class="rush-btn"
-                @click="clearAll"
-                style="border-color: var(--rush-orange); color: var(--rush-orange);"
-              >
-                Clear All
-              </button>
-            </div>
+              <button   
+                class="rush-btn"  
+                @click="clearAll"  
+                style="border-color: var(--rush-orange); color: var(--rush-orange);"  
+              >  
+                Clear All  
+              </button>  
+            </div>  
 
-            <div class="container main">
-              <div class="todo-list-box">
-                <div class="bar-message" style="border-color: var(--rush-red);">
-                  <div class="bar-message-text" style="color: var(--rush-red); font-weight: bold;">
-                    {{ statusMessage }}
-                  </div>
-                </div>
+            <div class="container main">  
+              <div class="todo-list-box">  
+                <div class="bar-message" style="border-color: var(--rush-red);">  
+                  <div class="bar-message-text" style="color: var(--rush-red); font-weight: bold;">  
+                    {{ statusMessage }}  
+                  </div>  
+                </div>  
 
-                <ul v-if="!tasks.length" class="empty-tips">
-                  <li>🚀 Add tasks with difficulty levels (HL) to start your RUSH session!</li>
-                  <li>⚡ Higher HL = More time allocated</li>
-                  <li>🎯 Beat the clock for better ratings!</li>
-                  <li>⏰ Time rolls over when you finish early</li>
-                  <li>✏️ Double-click task titles to edit, drag to reorder</li>
-                </ul>
+                <ul v-if="!tasks.length" class="empty-tips">  
+                  <li>🚀 Add tasks with difficulty levels (HL) to start your RUSH session!</li>  
+                  <li>⚡ Higher HL = More time allocated</li>  
+                  <li>🎯 Beat the clock for better ratings!</li>  
+                  <li>⏰ Time rolls over when you finish early</li>  
+                  <li>✏️ Double-click task titles to edit, drag to reorder</li>  
+                </ul>  
 
-                <ul class="todo-list">
-                  <li 
-                    v-for="(task, index) in tasks" 
-                    :key="task.id"
-                    class="rush-task-item"
-                    :class="{ 
-                      active: currentTaskIndex === index && sessionActive,
-                      completed: task.completed,
-                      'drag-over': dragOverIndex === index
-                    }"
-                    draggable="true"
-                    @dragstart="handleDragStart(index, $event)"
-                    @dragover="handleDragOver(index, $event)"
-                    @dragleave="handleDragLeave"
-                    @drop="handleDrop(index, $event)"
-                  >
-                    <div v-if="editingTask === task.id" class="todo-content">
-                      <input 
-                        v-model="task.title"
-                        autocomplete="off"
-                        @keyup.enter="saveEdit(task)"
-                        @keyup.esc="cancelEdit"
-                        class="task-edit-input"
-                        ref="editInput"
-                      />
-                      <label style="margin-left: 16px; font-weight: bold;">
-                        HL:
-                        <input
-                          v-model.number="task.hl"
-                          type="number"
-                          min="1"
-                          max="10"
-                          class="hl-edit-input"
-                          @change="recalculateAllocatedTimes"
-                          autocomplete="off"
-                        />
-                      </label>
-                    </div>
+                <ul class="todo-list">  
+                  <li   
+                    v-for="(task, index) in tasks"   
+                    :key="task.id"  
+                    class="rush-task-item"  
+                    :class="{   
+                      active: currentTaskIndex === index && sessionActive,  
+                      completed: task.completed,  
+                      'drag-over': dragOverIndex === index  
+                    }"  
+                    draggable="true"  
+                    @dragstart="handleDragStart(index, $event)"  
+                    @dragover="handleDragOver(index, $event)"  
+                    @dragleave="handleDragLeave"  
+                    @drop="handleDrop(index, $event)"  
+                  >  
+                    <div v-if="editingTask === task.id" class="todo-content">  
+                      <input   
+                        v-model="task.title"  
+                        autocomplete="off"  
+                        @keyup.enter="saveEdit(task)"  
+                        @keyup.esc="cancelEdit"  
+                        class="task-edit-input"  
+                        ref="editInput"  
+                      />  
+                      <label style="margin-left: 16px; font-weight: bold;">  
+                        HL:  
+                        <input  
+                          v-model.number="task.hl"  
+                          type="number"  
+                          min="1"  
+                          max="10"  
+                          class="hl-edit-input"  
+                          @change="recalculateAllocatedTimes"  
+                          autocomplete="off"  
+                        />  
+                      </label>  
+                    </div>  
                     
-                    <div v-else 
-                        class="todo-content" 
-                        :class="{ completed: task.completed }"
-                        @dblclick="startEdit(task)"
-                        >
+                    <div v-else   
+                        class="todo-content"   
+                        :class="{ completed: task.completed }"  
+                        @dblclick="startEdit(task)"  
+                        >  
                       
-                      <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }" v-html="renderTaskLabel(task)">
-                      </label>
+                      <label :style="{ 'text-decoration': task.completed ? 'line-through' : 'none' }" v-html="renderTaskLabel(task)">  
+                      </label>  
                       
-                      <div v-if="task.completed" 
-                          class="timer-completion completed" 
-                          :class="{
-                            'timer-early': task.cumulativeTime > 0,
-                            'timer-late': task.cumulativeTime < 0
-                          }"
-                          style="width: 110px"
-                          >
-                        {{ task.cumulativeTime > 0 ? '-' : '+' }}
-                        {{ formatTime(Math.abs(task.cumulativeTime)) }}
-                      </div>
-                    </div>
+                      <div v-if="task.completed"   
+                          class="timer-completion completed"   
+                          :class="{  
+                            'timer-early': task.cumulativeTime > 0,  
+                            'timer-late': task.cumulativeTime < 0  
+                          }"  
+                          style="width: 110px"  
+                          >  
+                        {{ task.cumulativeTime > 0 ? '-' : '+' }}  
+                        {{ formatTime(Math.abs(task.cumulativeTime)) }}  
+                      </div>  
+                    </div>  
 
-                    <div 
-                      v-if="!sessionActive && !task.completed"
-                      class="task-allocated-timer"
-                    >
-                      {{ formatTime(task.allocatedTime * 1000) }}
-                    </div>
+                    <div   
+                      v-if="!sessionActive && !task.completed"  
+                      class="task-allocated-timer"  
+                    >  
+                      {{ formatTime(task.allocatedTime * 1000) }}  
+                    </div>  
                     
-                    <div 
-                      v-if="currentTaskIndex === index && sessionActive"
-                      class="timer-display task-timer"
-                      :class="{ 'timer-negative': currentTaskTimeLeft < 0 }"
-                    >
-                      {{ formatTime(currentTaskTimeLeft) }}
-                    </div>
+                    <div   
+                      v-if="currentTaskIndex === index && sessionActive"  
+                      class="timer-display task-timer"  
+                      :class="{ 'timer-negative': currentTaskTimeLeft < 0 }"  
+                    >  
+                      {{ formatTime(currentTaskTimeLeft) }}  
+                    </div>  
 
-                    <!-- Copy button for hidden prompts (shown during session) -->
-                    <div
-                      class="todo-btn btn-copy"
-                      v-if="hasHiddenPrompt(task) && editingTask !== task.id && (sessionActive || sessionPaused)"
-                      @click="copyPromptContent(task, $event)"
-                      title="Copy hidden prompt"
-                    >
-                      <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />
-                    </div>
+                    <div  
+                      class="todo-btn btn-copy"  
+                      v-if="hasHiddenPrompt(task) && editingTask !== task.id && (sessionActive || sessionPaused)"  
+                      @click="copyPromptContent(task, $event)"  
+                      title="Copy hidden prompt"  
+                    >  
+                      <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />  
+                    </div>  
 
-                    <div class="task-controls"> 
-                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive && !sessionPaused" > 
-                      <img src="public/img/delete.svg" alt="Delete" draggable="false">
-                      </div> 
-                    </div>
+                    <div class="task-controls">   
+                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive && !sessionPaused" >   
+                      <img src="public/img/delete.svg" alt="Delete" draggable="false">  
+                      </div>   
+                    </div>  
                     
-                    <div
-                      class="todo-btn btn-finish"
-                      v-if="!task.completed && (sessionActive || sessionPaused)"
-                      @click="completeTask(index)"
-                    ></div>
+                    <div  
+                      class="todo-btn btn-finish"  
+                      v-if="!task.completed && (sessionActive || sessionPaused)"  
+                      @click="completeTask(index)"  
+                    ></div>  
                     
-                    <div
-                      class="todo-btn btn-unfinish"
-                      v-if="task.completed && (sessionActive || sessionPaused)"
-                      @click="uncompleteTask(index)"
-                    >
-                      <img src="public/img/complete.svg" alt="Completed" />
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
+                    <div  
+                      class="todo-btn btn-unfinish"  
+                      v-if="task.completed && (sessionActive || sessionPaused)"  
+                      @click="uncompleteTask(index)"  
+                    >  
+                      <img src="public/img/complete.svg" alt="Completed" />  
+                    </div>  
+                  </li>  
+                </ul>  
+              </div>  
+            </div>  
 
-            <div v-if="showRatingModal" class="rating-modal" @click="closeRatingModal">
-              <div class="rating-content" @click.stop>
-                <h2>Session Complete!</h2>
-                <div class="rating-grade" :class="'rating-' + finalRating.toLowerCase()">
-                  {{ finalRating }}
-                </div>
-                <p><strong>Actual Time:</strong> {{ formatTime(actualCompletionTime) }}</p>
-                <p><strong>Target Time:</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>
-                <p><strong>Tasks Completed:</strong> {{ completedTasksCount }} / {{ totalTasksCount }}</p>
-                <button class="rush-btn rush-btn-primary" @click="closeRatingModal">
-                  Close
-                </button>
-              </div>
-            </div>
+            <div v-if="showRatingModal" class="rating-modal" @click="closeRatingModal">  
+              <div class="rating-content" @click.stop>  
+                <h2>Session Complete!</h2>  
+                <div class="rating-grade" :class="'rating-' + finalRating.toLowerCase()">  
+                  {{ finalRating }}  
+                </div>  
+                <p><strong>Actual Time:</strong> {{ formatTime(actualCompletionTime) }}</p>  
+                <p><strong>Target Time:</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>  
+                <p><strong>Tasks Completed:</strong> {{ completedTasksCount }} / {{ totalTasksCount }}</p>  
+                <button class="rush-btn rush-btn-primary" @click="closeRatingModal">  
+                  Close  
+                </button>  
+              </div>  
+            </div>  
 
-            <div class="nav">
-              <span>{{ userEmail }}</span>
-              <button class="rush-btn" @click="goBack" style="margin-left: 12px;">
-                ← Back to Todo
-              </button>
-            </div>
-          </div>
+            <div class="nav">  
+              <span>{{ userEmail }}</span>  
+              <button class="rush-btn" @click="goBack" style="margin-left: 12px;">  
+                ← Back to Todo  
+              </button>  
+            </div>  
+          </div>  
         `,
 
         data() {
@@ -790,7 +846,7 @@
             newTaskHL: 1,
             totalTimeMinutes: 60,
             sessionActive: false,
-            importSuccessMessage: '',
+            importSuccessMessage: "",
             sessionPaused: false,
             sessionStartTime: null,
             pausedTime: 0,
@@ -836,7 +892,8 @@
               for (let i = 0; i <= taskIndex; i++) {
                 const task = this.tasks[i];
                 if (task.completed) {
-                  const taskSavings = (task.allocatedTime * 1000) - task.actualTime;
+                  const taskSavings =
+                    task.allocatedTime * 1000 - task.actualTime;
                   cumulativeTime += taskSavings;
                 }
               }
@@ -895,7 +952,7 @@
               allocatedTime: 0,
               actualTime: 0,
               startTime: null,
-              deadline: 0, // will be calculated
+              deadline: 0,
             };
 
             this.tasks.push(task);
@@ -912,7 +969,6 @@
             let remainingTime = this.totalTimeSeconds;
             const timePerHL = this.totalTimeSeconds / totalHL;
 
-            // Calculate allocated times
             for (let i = 0; i < this.tasks.length - 1; i++) {
               const task = this.tasks[i];
               task.allocatedTime = Math.floor(timePerHL * task.hl);
@@ -925,11 +981,10 @@
               );
             }
 
-            // Calculate cumulative deadlines
             let cumulativeTime = 0;
             for (let i = 0; i < this.tasks.length; i++) {
               cumulativeTime += this.tasks[i].allocatedTime;
-              this.tasks[i].deadline = cumulativeTime * 1000; // Store deadline in milliseconds
+              this.tasks[i].deadline = cumulativeTime * 1000;
             }
           },
 
@@ -1021,7 +1076,7 @@
 
           async loadImportedTasks() {
             try {
-              const importedData = localStorage.getItem('rush-imported-tasks');
+              const importedData = localStorage.getItem("rush-imported-tasks");
               if (importedData) {
                 const importedTasks = JSON.parse(importedData);
                 if (Array.isArray(importedTasks) && importedTasks.length > 0) {
@@ -1029,26 +1084,29 @@
                   this.recalculateAllocatedTimes();
                   this.importSuccessMessage = `Successfully imported ${importedTasks.length} task(s) from your todo list!`;
 
-                  localStorage.removeItem('rush-imported-tasks');
+                  localStorage.removeItem("rush-imported-tasks");
 
                   setTimeout(() => {
-                    this.importSuccessMessage = '';
+                    this.importSuccessMessage = "";
                   }, 5000);
                 }
               }
             } catch (error) {
-              console.error('Failed to load imported tasks:', error);
+              console.error("Failed to load imported tasks:", error);
             }
           },
 
           hasHiddenPrompt(task) {
-            return task.title.includes('fPrompt[') && task.title.includes('fPromptEnd]');
+            return (
+              task.title.includes("fPrompt[") &&
+              task.title.includes("fPromptEnd]")
+            );
           },
 
           getHiddenPromptContent(task) {
             const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
             const matches = [...task.title.matchAll(promptPattern)];
-            return matches.map(match => match[1]).join('\n\n');
+            return matches.map((match) => match[1]).join("\n\n");
           },
 
           async copyPromptContent(task, event) {
@@ -1059,20 +1117,20 @@
               if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(content);
               } else {
-                const textArea = document.createElement('textarea');
+                const textArea = document.createElement("textarea");
                 textArea.value = content;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                textArea.style.top = '-999999px';
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
                 document.body.appendChild(textArea);
                 textArea.focus();
                 textArea.select();
-                document.execCommand('copy');
+                document.execCommand("copy");
                 textArea.remove();
               }
               this.showCopyFeedback(event);
             } catch (error) {
-              console.error('Copy failed:', error);
+              console.error("Copy failed:", error);
             }
           },
 
@@ -1080,57 +1138,65 @@
             const copyBtn = event && event.currentTarget;
             if (copyBtn) {
               const originalTitle = copyBtn.title;
-              copyBtn.title = 'Copied!';
-              copyBtn.style.background = '#16a34a';
-              copyBtn.style.borderColor = '#16a34a';
+              copyBtn.title = "Copied!";
+              copyBtn.style.background = "#16a34a";
+              copyBtn.style.borderColor = "#16a34a";
               setTimeout(() => {
                 copyBtn.title = originalTitle;
-                copyBtn.style.background = '';
-                copyBtn.style.borderColor = '';
+                copyBtn.style.background = "";
+                copyBtn.style.borderColor = "";
               }, 1500);
             }
           },
 
           renderTaskLabel(task) {
-            const displayTitle = this.parseHiddenPrompts(this.renderMath(task.title));
+            const displayTitle = this.parseHiddenPrompts(
+              this.renderMath(task.title),
+            );
             return `${displayTitle} (HL: ${task.hl})`;
           },
 
           parseHiddenPrompts(content) {
             const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
-            return content.replace(promptPattern, '').trim();
+            return content.replace(promptPattern, "").trim();
           },
 
           renderMath(content) {
-            if (typeof katex !== 'undefined') {
+            if (typeof katex !== "undefined") {
               try {
-                content = content.replace(/\$\$([^$]+)\$\$/g, (match, mathContent) => {
-                  try {
-                    return katex.renderToString(mathContent.trim(), {
-                      displayMode: true,
-                      throwOnError: false,
-                      strict: false
-                    });
-                  } catch (e) {
-                    console.warn('KaTeX display math error:', e);
-                    return match;
-                  }
-                });
+                content = content.replace(
+                  /\$\$([^$]+)\$\$/g,
+                  (match, mathContent) => {
+                    try {
+                      return katex.renderToString(mathContent.trim(), {
+                        displayMode: true,
+                        throwOnError: false,
+                        strict: false,
+                      });
+                    } catch (e) {
+                      console.warn("KaTeX display math error:", e);
+                      return match;
+                    }
+                  },
+                );
 
-                content = content.replace(/\$([^$]+)\$/g, (match, mathContent) => {
-                  try {
-                    return katex.renderToString(mathContent.trim(), {
-                      displayMode: false,
-                      throwOnError: false,
-                      strict: false
-                    });
-                  } catch (e) {
-                    console.warn('KaTeX inline math error:', e);
-                    return match;
-                  }
-                });
+                content = content.replace(
+                  /\$([^$]+)\$/g,
+                  (match, mathContent) => {
+                    try {
+                      return katex.renderToString(mathContent.trim(), {
+                        displayMode: false,
+                        throwOnError: false,
+                        strict: false,
+                      });
+                    } catch (e) {
+                      console.warn("KaTeX inline math error:", e);
+                      return match;
+                    }
+                  },
+                );
               } catch (error) {
-                console.error('KaTeX rendering error:', error);
+                console.error("KaTeX rendering error:", error);
               }
             }
             return content;
@@ -1280,8 +1346,7 @@
 
             task.completed = true;
             task.actualTime = task.startTime ? Date.now() - task.startTime : 0;
-            
-            // Calculate time difference from deadline (positive = early, negative = late)
+
             const sessionElapsed =
               this.pausedTime + (Date.now() - this.sessionStartTime);
             task.cumulativeTime = task.deadline - sessionElapsed;

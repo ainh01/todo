@@ -1,29 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-const taskSchema = new mongoose.Schema({
-  task_id: {
-    type: Number,
-    required: true
-  },
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  slot: {
-    type: Number,
-    required: true
-  },
-  finished: {
-    type: Boolean,
-    default: false
-  }
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
-});
-
-
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -38,7 +15,10 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: 6
   },
-  tasks: [taskSchema]
+  currentKey: {
+    type: String,
+    default: 'Default'
+  }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

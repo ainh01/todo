@@ -71,6 +71,14 @@
                   <input
                     type="text"
                     class="add-content"
+                    placeholder="Set key (e.g. Default, Work)..."
+                    v-model="newTaskSetKey"
+                    :disabled="isAddingTask"
+                    style="margin-bottom:4px"
+                  />
+                  <input
+                    type="text"
+                    class="add-content"
                     :placeholder="'Add task for ' + currentUser + '...'"
                     v-model="newTaskTitle"
                     @keyup.enter="addTaskForUser"
@@ -179,7 +187,8 @@
             isLoading: false,
             isAddingTask: false,
             adminEmail: localStorage.getItem("user_email") || "",
-            errorMessage: ''
+            errorMessage: '',
+            newTaskSetKey: ''
           };
         },
 
@@ -213,15 +222,24 @@
 
             try {
               const response = await ApiService.getUserTasks(email);
-              this.userTasks = (response.data || []).map(task => ({
-                id: task.task_id || task._id,
-                title: task.title,
-                completed: task.finished || false,
-                slot: task.slot,
-                created_at: task.created_at,
-                updated_at: task.updated_at
-              }));
+              const groupedData = response.data || {};
+              const allTasks = [];
 
+              Object.entries(groupedData).forEach(([setKey, tasks]) => {
+                tasks.forEach(task => {
+                  allTasks.push({
+                    id: task.task_id || task._id,
+                    title: `[${setKey}] ${task.title}`,
+                    completed: task.finished || false,
+                    slot: task.slot,
+                    setKey,
+                    created_at: task.created_at,
+                    updated_at: task.updated_at
+                  });
+                });
+              });
+
+              this.userTasks = allTasks;
               this.currentUser = email;
             } catch (error) {
               console.error('Failed to load user tasks:', error);
@@ -242,7 +260,9 @@
             this.errorMessage = '';
 
             try {
-              const response = await ApiService.createTaskForUser(this.currentUser, title);
+              const response = await ApiService.createTaskForUser(
+                this.currentUser, title, this.newTaskSetKey.trim() || 'Default'
+              );
               const newTask = response.data;
 
               this.userTasks.push({

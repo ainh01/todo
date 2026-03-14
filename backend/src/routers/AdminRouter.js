@@ -65,12 +65,12 @@ router.get('/admin/check-status', protect, checkAdminStatus);
  *               properties:
  *                 success:
  *                   type: boolean
- *                 count:
- *                   type: integer
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Task'
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       $ref: '#/components/schemas/Task'
  *       400:
  *         description: Email parameter missing
  *       401:
@@ -106,10 +106,14 @@ router.get('/admin/tasks/:email', protect, isAdmin, getUserTasks);
  *             type: object
  *             required:
  *               - title
+ *               - key
  *             properties:
  *               title:
  *                 type: string
  *                 description: Task title
+ *               key:
+ *                 type: string
+ *                 description: Target set key (must already exist)
  *     responses:
  *       201:
  *         description: Task created successfully

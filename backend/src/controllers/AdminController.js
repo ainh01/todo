@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Key  = require('../models/Key');
+const Task = require('../models/Task');
 
 exports.getUserTasks = async (req, res) => {
   try {
@@ -20,13 +22,12 @@ exports.getUserTasks = async (req, res) => {
       });
     }
 
-    const sortedTasks = user.tasks.sort((a, b) => a.slot - b.slot);
-
-    res.status(200).json({
-      success: true,
-      count: sortedTasks.length,
-      data: sortedTasks
-    });
+    const taskDocs = await Task.find({ userId: user._id });
+    const data = {};
+    for (const doc of taskDocs) {
+      data[doc.key] = doc.tasks.slice().sort((a, b) => a.slot - b.slot);
+    }
+    res.status(200).json({ success: true, data });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -38,19 +39,12 @@ exports.getUserTasks = async (req, res) => {
 exports.createUserTask = async (req, res) => {
   try {
     const { email } = req.params;
-    const { title } = req.body;
+    const { title, key } = req.body;
 
-    if (!email) {
+    if (!title || !key) {
       return res.status(400).json({
         success: false,
-        error: 'Email parameter is required'
-      });
-    }
-
-    if (!title) {
-      return res.status(400).json({
-        success: false,
-        error: 'Title is required'
+        error: 'title and key are required'
       });
     }
 
@@ -63,27 +57,28 @@ exports.createUserTask = async (req, res) => {
       });
     }
 
-    const task_id = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.task_id)) + 1
+    const doc = await Task.findOne({ userId: user._id, key });
+    if (!doc) {
+      return res.status(400).json({
+        success: false,
+        error: `Set "${key}" does not exist for this user`
+      });
+    }
+
+    const task_id = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.task_id)) + 1
       : 1;
 
-    const slot = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.slot)) + 1
+    const slot = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.slot)) + 1
       : 1;
 
-    const newTask = {
-      task_id,
-      title,
-      slot,
-      finished: false
-    };
-
-    user.tasks.push(newTask);
-    await user.save();
+    doc.tasks.push({ task_id, title, slot, finished: false });
+    await doc.save();
 
     res.status(201).json({
       success: true,
-      data: user.tasks[user.tasks.length - 1]
+      data: doc.tasks[doc.tasks.length - 1]
     });
   } catch (error) {
     res.status(500).json({

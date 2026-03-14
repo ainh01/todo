@@ -1,5 +1,13 @@
 const User = require('../models/User');
+const TaskDoc = require('../models/Task');
 const axios = require('axios');
+
+async function getTaskDoc(userId) {
+  const user = await User.findById(userId).select('currentKey');
+  if (!user) return { user: null, doc: null };
+  const doc = await TaskDoc.findOne({ userId, key: user.currentKey });
+  return { user, doc };
+}
 
 exports.createLongTasks = async (req, res) => {
   try {
@@ -12,7 +20,6 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    // Validate environment variables
     const requiredEnvVars = ['GENAI_MODEL', 'GENAI_TOKENLIMIT', 'GENAI_BASEPROMPT', 'GENAI_ORIGIN', 'GENAI_APIKEY'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
@@ -23,7 +30,7 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -31,7 +38,6 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    // Construct GenAI API request
     const genAIPayload = {
       model: process.env.GENAI_MODEL,
       max_tokens: parseInt(process.env.GENAI_TOKENLIMIT),
@@ -52,7 +58,7 @@ exports.createLongTasks = async (req, res) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
           },
-          timeout: 1200000 // 1200 second timeout
+          timeout: 1200000
         });
         break;
       } catch (error) {
@@ -67,7 +73,6 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    // Parse GenAI response to extract tasks
     const rawData = genAIResponse.data;
     const responseContent = (rawData?.choices?.[0]?.message?.content || '').replace(/\n/g, ' ');
 
@@ -89,13 +94,12 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    // Create task objects following existing schema
-    const startTaskId = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.task_id)) + 1
+    const startTaskId = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.task_id)) + 1
       : 1;
 
-    const startSlot = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.slot)) + 1
+    const startSlot = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.slot)) + 1
       : 1;
 
     const newTasks = extractedTasks.map((taskTitle, index) => ({
@@ -105,11 +109,10 @@ exports.createLongTasks = async (req, res) => {
       finished: false
     }));
 
-    // Save all tasks to user's task array
-    user.tasks.push(...newTasks);
+    doc.tasks.push(...newTasks);
     
     try {
-      await user.save();
+      await doc.save();
     } catch (error) {
       return res.status(500).json({
         success: false,
@@ -117,7 +120,6 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    // Return response matching existing POST /api/tasks format
     res.status(201).json({
       success: true,
       data: newTasks
@@ -142,7 +144,7 @@ exports.createTask = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -151,26 +153,26 @@ exports.createTask = async (req, res) => {
       });
     }
 
-    const task_id = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.task_id)) + 1
+    const task_id = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.task_id)) + 1
       : 1;
 
-    const slot = user.tasks.length > 0
-      ? Math.max(...user.tasks.map(t => t.slot)) + 1
+    const slot = doc.tasks.length > 0
+      ? Math.max(...doc.tasks.map(t => t.slot)) + 1
       : 1;
 
-    user.tasks.push({
+    doc.tasks.push({
       task_id,
       title,
       slot,
       finished: false
     });
 
-    await user.save();
+    await doc.save();
 
     res.status(201).json({
       success: true,
-      data: user.tasks[user.tasks.length - 1]
+      data: doc.tasks[doc.tasks.length - 1]
     });
   } catch (error) {
     res.status(500).json({
@@ -182,7 +184,7 @@ exports.createTask = async (req, res) => {
 
 exports.getTasks = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -191,7 +193,7 @@ exports.getTasks = async (req, res) => {
       });
     }
 
-    const sortedTasks = user.tasks.sort((a, b) => a.slot - b.slot);
+    const sortedTasks = (doc?.tasks || []).slice().sort((a, b) => a.slot - b.slot);
 
     res.status(200).json({
       success: true,
@@ -209,7 +211,7 @@ exports.getTasks = async (req, res) => {
 exports.getTask = async (req, res) => {
   try {
     const taskId = parseInt(req.params.id);
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -218,7 +220,7 @@ exports.getTask = async (req, res) => {
       });
     }
 
-    const task = user.tasks.find(t => t.task_id === taskId);
+    const task = doc?.tasks.find(t => t.task_id === taskId);
 
     if (!task) {
       return res.status(404).json({
@@ -244,7 +246,7 @@ exports.updateTask = async (req, res) => {
     const taskId = parseInt(req.params.id);
     const { title } = req.body;
 
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -253,7 +255,7 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    const task = user.tasks.find(t => t.task_id === taskId);
+    const task = doc?.tasks.find(t => t.task_id === taskId);
 
     if (!task) {
       return res.status(404).json({
@@ -264,7 +266,7 @@ exports.updateTask = async (req, res) => {
 
     if (title !== undefined) task.title = title;
 
-    await user.save();
+    await doc.save();
 
     res.status(200).json({
       success: true,
@@ -290,7 +292,7 @@ exports.moveTask = async (req, res) => {
       });
     }
 
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -299,7 +301,7 @@ exports.moveTask = async (req, res) => {
       });
     }
 
-    const task = user.tasks.find(t => t.task_id === taskId);
+    const task = doc?.tasks.find(t => t.task_id === taskId);
 
     if (!task) {
       return res.status(404).json({
@@ -320,13 +322,13 @@ exports.moveTask = async (req, res) => {
     }
 
     if (newSlot < currentSlot) {
-      user.tasks.forEach(t => {
+      doc.tasks.forEach(t => {
         if (t.slot >= newSlot && t.slot < currentSlot) {
           t.slot += 1;
         }
       });
     } else {
-      user.tasks.forEach(t => {
+      doc.tasks.forEach(t => {
         if (t.slot > currentSlot && t.slot <= newSlot) {
           t.slot -= 1;
         }
@@ -334,7 +336,7 @@ exports.moveTask = async (req, res) => {
     }
 
     task.slot = newSlot;
-    await user.save();
+    await doc.save();
 
     res.status(200).json({
       success: true,
@@ -352,7 +354,7 @@ exports.moveTask = async (req, res) => {
 exports.finishTask = async (req, res) => {
   try {
     const taskId = parseInt(req.params.id);
-    const user = await User.findById(req.userId);
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -361,7 +363,7 @@ exports.finishTask = async (req, res) => {
       });
     }
 
-    const task = user.tasks.find(t => t.task_id === taskId);
+    const task = doc?.tasks.find(t => t.task_id === taskId);
 
     if (!task) {
       return res.status(404).json({
@@ -371,7 +373,7 @@ exports.finishTask = async (req, res) => {
     }
 
     task.finished = !task.finished;
-    await user.save();
+    await doc.save();
 
     res.status(200).json({
       success: true,
@@ -390,28 +392,28 @@ exports.deleteTask = async (req, res) => {
   try {
     const taskId = parseInt(req.params.id);
 
-    const user = await User.findOneAndUpdate(
-      { _id: req.userId, 'tasks.task_id': taskId },
-      { $pull: { tasks: { task_id: taskId } } },
-      { new: false }
-    );
+    const { user, doc } = await getTaskDoc(req.userId);
 
     if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const idx = doc?.tasks.findIndex(t => t.task_id === taskId);
+
+    if (idx === -1 || idx === undefined) {
       return res.status(404).json({
         success: false,
         error: 'Task not found'
       });
     }
 
-    const deletedSlot = user.tasks.find(t => t.task_id === taskId)?.slot;
-
-    if (deletedSlot !== undefined) {
-      await User.updateOne(
-        { _id: req.userId, 'tasks.slot': { $gt: deletedSlot } },
-        { $inc: { 'tasks.$[elem].slot': -1 } },
-        { arrayFilters: [{ 'elem.slot': { $gt: deletedSlot } }] }
-      );
-    }
+    const deletedSlot = doc.tasks[idx].slot;
+    doc.tasks.splice(idx, 1);
+    doc.tasks.forEach(t => { if (t.slot > deletedSlot) t.slot -= 1; });
+    await doc.save();
 
     res.status(200).json({
       success: true,

@@ -1761,7 +1761,6 @@ span.shortcut-name {
   background: var(--deleted);
 }
 
-/* ── Saving / error states on todo items ─────────────────────────────────── */
 
 .todo-item--saving .todo-content {
   opacity: 0.65;
@@ -1805,7 +1804,6 @@ span.shortcut-name {
   to { transform: rotate(360deg); }
 }
 
-/* Error bar shown inside the item below the content */
 .todo-error-bar {
   display: -webkit-box;
   display: -ms-flexbox;

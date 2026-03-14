@@ -7,7 +7,8 @@ export default {
         leftTodosCount: Number,
         completedTodosCount: Number,
         isShow: Boolean,
-        shortCut: String
+        shortCut: String,
+        currentKey: String
     },
 
     template: `
@@ -20,6 +21,9 @@ export default {
         <div class="shortcut-switch">
           <span class="shortcut-title">{{ shortCut }}</span>
           <span class="shortcut-name">Quicks</span>
+        </div>
+        <div v-if="currentKey" style="font-size:11px; opacity:.65; padding:2px 6px; text-align:center;">
+          {{ currentKey }}
         </div>
       </div>
 
@@ -91,25 +95,6 @@ export default {
           </li>
         </ul>
 
-        <ul class="todo-func-list datasave">
-          <li v-if="leftTodosCount">
-            <input
-              type="button"
-              value="Export data"
-              class="btn-small action-download"
-              @click="$emit('export-data')"
-            />
-          </li>
-          <li>
-            <input
-              value="Import(txt/json)"
-              type="button"
-              class="btn-small action-import"
-              @click="$emit('import-data')"
-            />
-          </li>
-        </ul>
-
         <ul class="todo-func-list batch">
           <li>
             <input
@@ -125,6 +110,14 @@ export default {
               value="Convert RUSH"
               class="btn-small action-import"
               @click="$emit('convert-rush')"
+            />
+          </li>
+          <li>
+            <input
+              type="button"
+              value="Change Space"
+              class="btn-small action-import"
+              @click="$emit('open-space-dialog')"
             />
           </li>
         </ul>
