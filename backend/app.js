@@ -8,6 +8,7 @@ const userRouter = require('./src/routers/UserRouter');
 const taskRouter = require('./src/routers/TaskRouter');
 const adminRouter = require('./src/routers/AdminRouter');
 const setRouter = require('./src/routers/SetRouter');
+const writeQueue = require('./src/middleware/writeQueue');
 const cors = require('cors');
 
 const app = express();
@@ -36,6 +37,10 @@ app.use(limiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serialise all write requests (POST/PUT/PATCH/DELETE) through a FIFO queue.
+// GET/HEAD/OPTIONS bypass the queue and are unaffected.
+app.use(writeQueue);
 
 const swaggerOptions = {
   definition: {
