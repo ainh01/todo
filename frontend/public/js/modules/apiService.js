@@ -123,6 +123,17 @@ export class ApiService {
     }, 'Switch set');
   }
 
+  static async deleteSet(key) {
+    return this.safeApiCall(async () => {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SETS}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ key })
+      });
+      return this.handleResponse(response);
+    }, 'Delete set');
+  }
+
   static async createLongTask(title) {
     return this.safeApiCall(async () => {
       const controller = new AbortController();

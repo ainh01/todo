@@ -243,13 +243,23 @@ export default {
         <div class="custom-alert">
           <div class="custom-alert-title">Change Space</div>
           <div class="custom-alert-content">
-            <div v-for="space in spaceList" :key="space.key" style="margin-bottom:8px">
-              <label style="cursor:pointer">
-                <input type="radio" :value="space.key" v-model="selectedSpaceKey" />
-                {{ space.key }}
-                <span style="opacity:.6; font-size:.85em">({{ space.taskCount }} tasks)</span>
-              </label>
+                        <div v-for="space in spaceList" :key="space.key" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <label style="cursor:pointer; flex:1;">
+                                <input type="radio" :value="space.key" v-model="selectedSpaceKey" />
+                                {{ space.key }}
+                                <span style="opacity:.6; font-size:.85em">({{ space.taskCount }} tasks)</span>
+                            </label>
+                            <button
+                                type="button"
+                                class="custom-alert-btn cancel"
+                                style="padding:4px 8px; min-width:60px;"
+                                @click="deleteSetKey(space.key)"
+                                :disabled="isChangingSpace || !!deletingSpaceKey || spaceList.length <= 1"
+                            >
+                                {{ deletingSpaceKey === space.key ? 'Deleting...' : 'Delete' }}
+                            </button>
             </div>
+                        <div v-if="spaceList.length === 1" style="opacity:.6; font-size:.85em; margin-bottom:8px;">At least one set key is required.</div>
             <div style="margin-bottom:8px">
               <label style="cursor:pointer">
                 <input type="radio" value="__new__" v-model="selectedSpaceKey" />
@@ -315,6 +325,7 @@ export default {
             isChangingSpace: false,
             currentKey: '',
             newSpaceName: '',
+            deletingSpaceKey: '',
         };
     },
 
@@ -972,6 +983,47 @@ export default {
                 this.isChangingSpace = false;
                 this.newSpaceName = '';
                 await this.loadTodos();
+            }
+        },
+
+        async deleteSetKey(key) {
+            if (!key || this.deletingSpaceKey) return;
+
+            if (this.spaceList.length <= 1) {
+                await DialogUtils.alert('Cannot delete the last set key.', 'Info');
+                return;
+            }
+
+            const confirmed = await DialogUtils.confirm(
+                `Delete set "${key}" and all tasks in it?`,
+                'Confirm Set Deletion'
+            );
+            if (!confirmed) return;
+
+            this.deletingSpaceKey = key;
+            try {
+                const response = await ApiService.deleteSet(key);
+                const newCurrentKey = response?.data?.currentKey || this.currentKey;
+                const isCurrentDeleted = key === this.currentKey;
+
+                this.currentKey = newCurrentKey;
+                localStorage.setItem('current_set_key', this.currentKey);
+
+                const setsRes = await ApiService.getSets();
+                this.spaceList = setsRes.data || [];
+
+                if (this.selectedSpaceKey === key) {
+                    this.selectedSpaceKey = this.currentKey;
+                }
+
+                if (isCurrentDeleted) {
+                    await this.loadTodos();
+                }
+            } catch (e) {
+                console.error('Failed to delete set:', e);
+                await DialogUtils.alert(`Failed to delete set: ${e.message || 'Unknown error'}`, 'Error');
+            } finally {
+                this.deletingSpaceKey = '';
             }
         },
 
