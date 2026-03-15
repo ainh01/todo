@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { protect } = require('../middleware/auth');
+const writeQueue = require('../middleware/writeQueue');
 const { getSets, createOrSwitchSet, deleteSet } = require('../controllers/SetController');
 
 /**
@@ -39,7 +40,7 @@ router.get('/sets', protect, getSets);
  *       200:
  *         description: Returns updated currentKey
  */
-router.post('/sets', protect, createOrSwitchSet);
+router.post('/sets', protect, writeQueue, createOrSwitchSet);
 
 /**
  * @swagger
@@ -63,6 +64,6 @@ router.post('/sets', protect, createOrSwitchSet);
  *       200:
  *         description: Returns new currentKey after deletion
  */
-router.delete('/sets', protect, deleteSet);
+router.delete('/sets', protect, writeQueue, deleteSet);
 
 module.exports = router;

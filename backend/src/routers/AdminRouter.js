@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const { isAdmin, checkAdminStatus } = require('../middleware/admin');
+const writeQueue = require('../middleware/writeQueue');
 const { getUserTasks, createUserTask } = require('../controllers/AdminController');
 
 /**
@@ -135,6 +136,6 @@ router.get('/admin/tasks/:email', protect, isAdmin, getUserTasks);
  *       404:
  *         description: User not found
  */
-router.post('/admin/tasks/:email', protect, isAdmin, createUserTask);
+router.post('/admin/tasks/:email', protect, isAdmin, writeQueue, createUserTask);
 
 module.exports = router;

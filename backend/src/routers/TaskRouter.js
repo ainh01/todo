@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const writeQueue = require('../middleware/writeQueue');
 const {
   createTask,
   getTasks,
@@ -62,7 +63,7 @@ const {
  *       401:  
  *         description: Unauthorized  
  */
-router.post('/tasks', protect, createTask);
+router.post('/tasks', protect, writeQueue, createTask);
 
 /**  
  * @swagger  
@@ -130,7 +131,7 @@ router.get('/tasks/:id', protect, getTask);
  *       404:  
  *         description: Task not found  
  */
-router.put('/tasks/:id', protect, updateTask);
+router.put('/tasks/:id', protect, writeQueue, updateTask);
 
 /**  
  * @swagger  
@@ -166,7 +167,7 @@ router.put('/tasks/:id', protect, updateTask);
  *       404:  
  *         description: Task not found  
  */
-router.put('/tasks/:id/move', protect, moveTask);
+router.put('/tasks/:id/move', protect, writeQueue, moveTask);
 
 /**  
  * @swagger  
@@ -188,7 +189,7 @@ router.put('/tasks/:id/move', protect, moveTask);
  *       404:  
  *         description: Task not found  
  */
-router.post('/tasks/:id/finish', protect, finishTask);
+router.post('/tasks/:id/finish', protect, writeQueue, finishTask);
 
 /**  
  * @swagger  
@@ -210,7 +211,7 @@ router.post('/tasks/:id/finish', protect, finishTask);
  *       404:  
  *         description: Task not found  
  */
-router.delete('/tasks/:id', protect, deleteTask);
+router.delete('/tasks/:id', protect, writeQueue, deleteTask);
 
 /**  
  * @swagger  
@@ -253,6 +254,6 @@ router.delete('/tasks/:id', protect, deleteTask);
  *       500:  
  *         description: Server error - GenAI API failure or missing environment variables  
  */  
-router.post('/longTasks', protect, createLongTasks);
+router.post('/longTasks', protect, writeQueue, createLongTasks);
 
 module.exports = router;  
