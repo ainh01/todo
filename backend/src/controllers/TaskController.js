@@ -9,6 +9,38 @@ async function getTaskDoc(userId) {
   return { user, doc };
 }
 
+async function callGenAI(model, prompt, input, step) {
+  const payload = {
+    model,
+    speed: 'fast',
+    messages: [{ role: 'user', content: prompt + input }]
+  };
+
+  let response;
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      response = await axios.post(process.env.GENAI_ORIGIN, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
+        },
+        timeout: 1200000
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!response) {
+    const msg = lastError.response?.data?.error || lastError.message;
+    throw Object.assign(new Error(`Step ${step} GenAI API error: ${msg}`), { statusCode: 500 });
+  }
+
+  return (response.data?.choices?.[0]?.message?.content || '').replace(/\n/g, ' ');
+}
+
 exports.createLongTasks = async (req, res) => {
   try {
     const { title } = req.body;
@@ -20,7 +52,11 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    const requiredEnvVars = ['GENAI_MODEL', 'GENAI_TOKENLIMIT', 'GENAI_BASEPROMPT', 'GENAI_ORIGIN', 'GENAI_APIKEY'];
+    const requiredEnvVars = [
+      'GENAI_MODEL1', 'GENAI_MODEL2', 'GENAI_MODEL3',
+      'GENAI_BASEPROMPT1', 'GENAI_BASEPROMPT2', 'GENAI_BASEPROMPT3',
+      'GENAI_ORIGIN', 'GENAI_APIKEY'
+    ];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
     if (missingVars.length > 0) {
@@ -31,6 +67,7 @@ exports.createLongTasks = async (req, res) => {
     }
 
     const { user, doc } = await getTaskDoc(req.userId);
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -38,50 +75,49 @@ exports.createLongTasks = async (req, res) => {
       });
     }
 
-    const genAIPayload = {
-      model: process.env.GENAI_MODEL,
-      max_tokens: parseInt(process.env.GENAI_TOKENLIMIT),
-      messages: [{   
-        role: "user",   
-        content: process.env.GENAI_BASEPROMPT + title   
-      }]
-    };
-
-    const genAIStart = Date.now();
-
-    let genAIResponse;
-    let genAIError;
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
-      try {
-        genAIResponse = await axios.post(process.env.GENAI_ORIGIN, genAIPayload, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.GENAI_APIKEY}`
-          },
-          timeout: 1200000
-        });
-        break;
-      } catch (error) {
-        genAIError = error;
-      }
-    }
-
-    if (!genAIResponse) {
-      return res.status(500).json({
+    if (!doc) {
+      return res.status(404).json({
         success: false,
-        error: `GenAI API error: ${genAIError.response?.data?.error || genAIError.message}`
+        error: 'Task document not found'
       });
     }
 
-    const rawData = genAIResponse.data;
-    const responseContent = (rawData?.choices?.[0]?.message?.content || '').replace(/\n/g, ' ');
+    // Step 1 — Shorten (conditional: only if title > 500 words)
+    let processedTitle = title;
+    const titleWordCount = title.trim().split(/\s+/).filter(Boolean).length;
 
+    if (titleWordCount > 500) {
+      processedTitle = await callGenAI(
+        process.env.GENAI_MODEL1,
+        process.env.GENAI_BASEPROMPT1,
+        title,
+        1
+      );
+    }
+
+    // Step 2 — Create Logic
+    const logic = await callGenAI(
+      process.env.GENAI_MODEL2,
+      process.env.GENAI_BASEPROMPT2,
+      processedTitle,
+      2
+    );
+
+    // Step 3 — Create Base Task
+    const baseTask = await callGenAI(
+      process.env.GENAI_MODEL3,
+      process.env.GENAI_BASEPROMPT3,
+      logic + processedTitle,
+      3
+    );
+
+    // Step 4 — Parse & Save
     const taskRegex = /fTask:\s*(.*?)\s*fEnd/g;
     const extractedTasks = [];
     let match;
 
-    while ((match = taskRegex.exec(responseContent)) !== null) {
-      const taskTitle = match[1].trim();
+    while ((match = taskRegex.exec(baseTask)) !== null) {
+      const taskTitle = match[1].trim().replace(/<!Ex>/g, '\n\n\n\n\n\n\n\n');
       if (taskTitle) {
         extractedTasks.push(taskTitle);
       }
@@ -126,7 +162,7 @@ exports.createLongTasks = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       error: error.message
     });

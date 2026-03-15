@@ -7,6 +7,29 @@ import TodoItem from './TodoItem.js';
 import SidebarActions from './SidebarActions.js';
 import SequenceTaskDialog from './SequenceTaskDialog.js';
 
+const LONG_TASK_PHRASES = [
+    'Breaking down your task into manageable steps...',
+    'Analyzing your task for the best approach...',
+    'Crunching the details, hang tight...',
+    'Turning your big idea into small wins...',
+    'Almost there, organizing subtasks...',
+    'Working some magic behind the scenes...',
+    'Slicing and dicing your task...',
+    'Building your personalized task plan...',
+    'Thinking hard so you don\'t have to...',
+    'Mapping out the perfect game plan...',
+    'Cooking up a fresh batch of subtasks...',
+    'Putting the pieces together for you...',
+    'Running at full speed, stay with me...',
+    'Diving deep into your request...',
+    'Generating smart subtasks just for you...',
+    'Spinning up the task engine...',
+    'Your productivity boost is loading...',
+    'Decomposing complexity into simplicity...',
+    'Crafting a clear path forward...',
+    'Wrapping up the heavy lifting...'
+];
+
 export default {
     name: 'TodoApp',
     components: {
@@ -318,6 +341,7 @@ export default {
             syncErrors: [],
             isProcessingLongTask: false,
             longTaskMessage: '',
+            longTaskInterval: null,
             _lastRefreshAt: 0,
             showSpaceDialog: false,
             spaceList: [],
@@ -455,9 +479,23 @@ export default {
             }
         },
 
+        startLongTaskPhrases() {
+            this.longTaskMessage = LONG_TASK_PHRASES[Math.floor(Math.random() * LONG_TASK_PHRASES.length)];
+            this.longTaskInterval = setInterval(() => {
+                this.longTaskMessage = LONG_TASK_PHRASES[Math.floor(Math.random() * LONG_TASK_PHRASES.length)];
+            }, 3000);
+        },
+        stopLongTaskPhrases() {
+            if (this.longTaskInterval) {
+                clearInterval(this.longTaskInterval);
+                this.longTaskInterval = null;
+            }
+            this.longTaskMessage = '';
+        },
+
         async handleVIPTask(title) {
             this.isProcessingLongTask = true;
-            this.longTaskMessage = 'Breaking down your task into manageable steps...';
+            this.startLongTaskPhrases();
 
             try {
                 const response = await ApiService.createLongTask(title);
@@ -499,7 +537,7 @@ export default {
                 }
             } finally {
                 this.isProcessingLongTask = false;
-                this.longTaskMessage = '';
+                this.stopLongTaskPhrases();
             }
         },
 

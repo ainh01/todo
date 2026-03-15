@@ -46,7 +46,7 @@
         --rush-red: #dc2626;
         --rush-red-light: #fef2f2;
         --rush-red-dark: #991b1b;
-        --rush-green: #16a34a;
+        --rush-green: #38b000;
         --rush-orange: #ea580c;
       }
 
@@ -210,7 +210,9 @@
 
       .rush-task-item.active {
         border-color: var(--rush-red);
-        box-shadow: 0 0 10px rgba(220, 38, 38, 0.3);
+        box-shadow: 0 0 120px rgba(220, 38, 38, 0.83);
+        position: relative;
+        z-index: 999;
       }
 
       .rush-task-item.drag-over {
@@ -315,7 +317,7 @@
       .countdown-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(50, 56, 109, 0.92);
+        background: rgba(0, 78, 137, 0.482);
         z-index: 99999;
         display: flex;
         align-items: center;
@@ -361,7 +363,7 @@
         overflow: hidden;
         position: relative;
         height: 100%;
-        background: #32386d;
+        background: #800016;
         border-radius: inherit;
       }
 
@@ -376,17 +378,17 @@
 
       .demo__colored-block:nth-child(1) {
         transform: rotate(0deg) skewX(30deg);
-        background-color: #fd3359;
+        background-color: #a0001c;
       }
 
       .demo__colored-block:nth-child(2) {
         transform: rotate(120deg) skewX(30deg);
-        background-color: #f4d302;
+        background-color: #c00021;
       }
 
       .demo__colored-block:nth-child(3) {
         transform: rotate(240deg) skewX(30deg);
-        background-color: #21bdff;
+        background-color: #ff002b;
       }
 
       .demo__inner {
@@ -583,8 +585,8 @@
                     <div class="demo__colored-block"></div>  
                   </div>  
                   <div class="demo__colored-blocks-inner"></div>  
-                  <div class="demo__text">Ready?</div>  
-                  <div class="demo__text demo__text--go">Now!</div>  
+                  <div class="demo__text">IT'S</div>  
+                  <div class="demo__text demo__text--go">GO!</div>  
                 </div>  
                 <div class="demo__inner">  
                   <svg class="demo__numbers" viewBox="0 0 100 100">  
@@ -716,12 +718,16 @@
                       'drag-over': dragOverIndex === index  
                     }"  
                     draggable="true"  
+                    :ref="'taskItem-' + task.id"
                     @dragstart="handleDragStart(index, $event)"  
                     @dragover="handleDragOver(index, $event)"  
                     @dragleave="handleDragLeave"  
                     @drop="handleDrop(index, $event)"  
                   >  
-                    <div v-if="editingTask === task.id" class="todo-content">  
+                    <div
+                      v-if="editingTask === task.id"
+                      class="todo-content"
+                    >  
                       <input   
                         v-model="task.title"  
                         autocomplete="off"  
@@ -875,6 +881,12 @@
 
         async mounted() {
           await this.loadImportedTasks();
+          document.addEventListener('mousedown', this.handleClickOutside);
+        },
+
+        beforeDestroy() {
+          document.removeEventListener('mousedown', this.handleClickOutside);
+          this.stopTimer();
         },
 
         computed: {
@@ -1017,6 +1029,17 @@
             this.editingTask = null;
             this.originalTaskData = null;
             this.recalculateAllocatedTimes();
+          },
+
+          handleClickOutside(event) {
+            if (!this.editingTask) return;
+
+            const taskEl = this.$refs['taskItem-' + this.editingTask];
+            const el = taskEl && (Array.isArray(taskEl) ? taskEl[0]?.$el || taskEl[0] : taskEl.$el || taskEl);
+            if (el && el.contains(event.target)) return;
+
+            const task = this.tasks.find((t) => t.id === this.editingTask);
+            if (task) this.saveEdit(task);
           },
 
           cancelEdit() {
@@ -1434,10 +1457,6 @@
           goBack() {
             window.location.href = "index.html";
           },
-        },
-
-        beforeDestroy() {
-          this.stopTimer();
         },
       };
 

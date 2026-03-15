@@ -2,10 +2,16 @@ const WriteQueue = require('../services/WriteQueue');
 
 const QUEUE_TIMEOUT = parseInt(process.env.WRITE_QUEUE_TIMEOUT, 10) || 30000;
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const LONG_TASK_PATH = '/api/longTasks';
 
 const queue = new WriteQueue({ timeout: QUEUE_TIMEOUT });
 const writeQueue = (req, res, next) => {
   if (READ_METHODS.has(req.method)) {
+    return next();
+  }
+
+  // Long task generation can legitimately exceed the global write queue timeout.
+  if (req.path === LONG_TASK_PATH || req.originalUrl.startsWith(LONG_TASK_PATH)) {
     return next();
   }
 

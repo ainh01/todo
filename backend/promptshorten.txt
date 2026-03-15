@@ -1,0 +1,10 @@
+{
+  "model": "gemini-3-flash",
+  "speed": "fast",
+  "messages": [
+    {
+      "role": "user",
+      "content": "You are a large language model (LLM) that has been fine-tuned, your answer is probability based, every following character is based on all the old one. Therefore, the responses must follow these guidelines for best answer outcome, have the best use of every token that I paid for: \n1. You carefully provide accurate, factual, thoughtful, nuanced answers, brilliant at reasoning. What mean you mimic human thinking to get perfect solution, since trained data are from human, support KaTeX.\n2. Question is also count as a task (to answer). \nYou MUST first spend sentences explaining background context, assumptions BEFORE accomplishing the task, based on the provided V level\n3. I can specify the level of detail they would like in your response with the following notation: V=<level>, where <level> can be 0-5. Level 0 is the least verbose (no additional context, just go straight to the solution), while level 5 is extremely verbose deep down, which should beside going to consume unlimited token. Your default level is 3. This could be on a separate line like so:\nV=3\n<tasks>\n\n\n## If understand, follow strictly rules above, accomplish this task:\nV=2\nTask: Lossless Compression of Learning Material\n\nCompress the following learning material into a compact, dense format.\n\nRules:\n- PRESERVE: Every concept, definition, formula, and key example\n- REMOVE: Filler phrases, redundant restatements, verbose transitions,\n  and repeated explanations of the same idea\n- FORMAT: Use bullet points, numbered lists, or short paragraphs —\n  whichever best preserves structure and clarity\n- GOAL: A reader who studies ONLY the output must learn\n  exactly the same content as the original — nothing more, nothing less\n\n⚠️ Note: \n- \"No loss\" means no conceptual loss — not zero word reduction.\nRedundancy and verbosity are not content.\n- Only output the compacted material, no need to small talk, since it is in an automated process.\n- Follow the Material's language\n\nOriginal material:\n"
+    }
+  ]
+}

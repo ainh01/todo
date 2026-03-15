@@ -216,7 +216,7 @@ router.delete('/tasks/:id', protect, deleteTask);
  * @swagger  
  * /api/longTasks:  
  *   post:  
- *     summary: Generate multiple tasks using GenAI service  
+ *     summary: Generate multiple tasks using a 3-step GenAI pipeline  
  *     tags: [Tasks]  
  *     security:  
  *       - bearerAuth: []  
@@ -231,7 +231,7 @@ router.delete('/tasks/:id', protect, deleteTask);
  *             properties:  
  *               title:  
  *                 type: string  
- *                 description: Input text to generate related tasks from  
+ *                 description: Input text to generate related tasks from (conditionally shortened if > 500 words)  
  *     responses:  
  *       201:  
  *         description: Tasks created successfully  
