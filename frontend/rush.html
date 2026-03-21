@@ -95,12 +95,12 @@
       }
 
       .timer-early {
-        background: var(--rush-green);
+        background: var(--rush-red);
         color: white;
       }
 
       .timer-late {
-        background: var(--rush-red);
+        background: var(--rush-green);
         color: white;
       }
 
@@ -772,7 +772,7 @@
                           }"  
                           style="width: 110px"  
                           >  
-                        {{ task.cumulativeTime > 0 ? '-' : '+' }}  
+                        {{ task.cumulativeTime > 0 ? '+' : '-' }}  
                         {{ formatTime(Math.abs(task.cumulativeTime)) }}  
                       </div>  
                     </div>  
