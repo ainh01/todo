@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hướng dẫn Todo – Tìm hiểu tính năng Todo</title>
+    <link href="public/css/normalize.css" rel="stylesheet" media="screen" />
+    <link href="public/css/style.min.css" rel="stylesheet" media="screen" />
+    <link href="public/css/tutorial.css" rel="stylesheet" media="screen" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+      integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+      integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+      integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+    <style>
+      .vip-processing {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #f8f9ff;
+        border: 2px solid #4f46e5;
+        border-radius: 6px;
+        padding: 12px;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 10;
+      }
+      .loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e5e7eb;
+        border-top: 2px solid #4f46e5;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        flex-shrink: 0;
+      }
+      .processing-text {
+        color: #4f46e5;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .add-content:disabled,
+      .submit-btn:disabled {
+        background-color: #d1d5db;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .seq-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .side-bar {
+        position: absolute;
+        left: calc(100% + 28px);
+        top: 0;
+      }
+      @media (max-width: 768px) {
+        .side-bar {
+          position: fixed !important;
+          top: unset;
+          bottom: 108px;
+          left: unset;
+          right: -2px;
+        }
+      }
+      .todo-func-list li input {
+        transition: all 0.25s;
+        width: 100%;
+        border-radius: 0;
+        border: 0;
+        box-shadow: unset;
+        border-top: 1px solid var(--black);
+        transform: unset !important;
+      }
+      .todo-func-list.filter li:first-child input {
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-pattern"></div>
+    <div class="todo-wrapper">
+      <div id="todo-tutorial-app" class="todo-app"></div>
+    </div>
+
+    <script type="module">
+      const mockDelay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+      const mockAlert = (msg) => new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-alert-overlay';
+        overlay.style.zIndex = '60000';
+        overlay.innerHTML = `<div class="custom-alert"><div class="custom-alert-content" style="text-align:center;padding:8px 0">${msg}</div><div class="custom-alert-buttons"><button class="custom-alert-btn confirm">OK</button></div></div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.confirm').addEventListener('click', () => { document.body.removeChild(overlay); resolve(); });
+      });
+      const mockConfirm = (msg) => new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-alert-overlay';
+        overlay.style.zIndex = '60000';
+        overlay.innerHTML = `<div class="custom-alert"><div class="custom-alert-content" style="text-align:center;padding:8px 0">${msg}</div><div class="custom-alert-buttons"><button class="custom-alert-btn cancel">Hủy</button><button class="custom-alert-btn confirm">Xác nhận</button></div></div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.cancel').addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
+        overlay.querySelector('.confirm').addEventListener('click', () => { document.body.removeChild(overlay); resolve(true); });
+      });
+      let _nextId = 100;
+
+      const MockApi = {
+        async getTasks() {
+          await mockDelay(300);
+          return [
+            { id: 1, title: "Đọc tài liệu", completed: false, removed: false },
+            {
+              id: 2,
+              title: "Viết unit test",
+              completed: false,
+              removed: false,
+            },
+            {
+              id: 3,
+              title: "Triển khai lên staging",
+              completed: true,
+              removed: false,
+            },
+            {
+              id: 4,
+              title: "Đánh giá pull request",
+              completed: false,
+              removed: false,
+            },
+          ];
+        },
+        async createTask(title) {
+          await mockDelay(400);
+          return { id: ++_nextId, title, completed: false, removed: false };
+        },
+        async updateTask(id, title) {
+          await mockDelay(300);
+          return { id, title };
+        },
+        async finishTask(id) {
+          await mockDelay(300);
+          return { id };
+        },
+        async deleteTask(id) {
+          await mockDelay(300);
+          return { id };
+        },
+        async moveTask(id, slot) {
+          await mockDelay(200);
+          return { id, slot };
+        },
+        async createLongTask(title) {
+          await mockDelay(1200);
+          return {
+            data: [
+              { id: ++_nextId, title: `Nghiên cứu: ${title}` },
+              { id: ++_nextId, title: `Bản nháp: ${title}` },
+              { id: ++_nextId, title: `Đánh giá: ${title}` },
+            ],
+          };
+        },
+      };
+
+      const TUTORIAL_STEPS = [
+        {
+          title: "① Thêm công việc",
+          description:
+            "Nhập tiêu đề và nhấn <strong>Enter</strong> hoặc nhấp <strong>Thêm</strong>.",
+          targetRef: "inputWrapper",
+          targetSubSelector: "input.add-content",
+          position: "bottom",
+          actionType: "input",
+          stepDone: false,
+        },
+        {
+          title: "② Hoàn thành công việc",
+          description:
+            "Nhấp <strong>vòng tròn</strong> để đánh dấu hoàn thành.",
+          targetRef: "firstTask",
+          targetSubSelector: ".btn-finish",
+          position: "right",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "③ Sửa thẻ",
+          description:
+            "<strong>Nhấp đúp chuột</strong> vào tiêu đề để sửa, rồi nhấn <strong>Enter</strong> để lưu.",
+          targetRef: "firstTask",
+          targetSubSelector: ".todo-content",
+          blockSelectors: [".btn-finish", ".btn-unfinish", ".btn-delete"],
+          position: "right",
+          actionType: "dblclick",
+          stepDone: false,
+        },
+        {
+          title: "④ Xóa công việc",
+          description:
+            "Nhấp biểu tượng <strong>thùng rác</strong> để chuyển vào Thùng rác.",
+          targetRef: "firstTask",
+          targetSubSelector: ".btn-delete",
+          position: "right",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑤ Lọc danh sách",
+          description:
+            "Nhấp <strong>Task Chưa xong</strong>, rồi <strong>Task Đã xong</strong>, rồi <strong>Hiện Tất cả</strong> để xem các bộ lọc.",
+          targetRef: "sidebar",
+          targetSubSelector: "input.action-progress",
+          position: "left",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑥ Thao tác hàng loạt",
+          description:
+            "Nhấp <strong>Done hết</strong>, rồi nhấp <strong>Xóa mục đã xong</strong> hoặc <strong>Xóa toàn bộ</strong>.",
+          targetRef: "sidebar",
+          targetSubSelector: "input.completed-all",
+          position: "left",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑦ Tạo việc tuần tự",
+          description:
+            "Nhấp <strong>Tạo việc tuần tự</strong> để tạo danh sách đánh số hàng loạt.",
+          targetRef: "sidebar",
+          targetSubSelector: 'input[value="Tạo việc tuần tự"]',
+          position: "left",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑦.① Đặt tên việc",
+          description: "Nhập <strong>tên cơ bản</strong> cho chuỗi.",
+          targetRef: "seqDialog",
+          targetSubSelector: 'input[placeholder="VD: Phần 3."]',
+          position: "bottom",
+          actionType: "input",
+          stepDone: false,
+        },
+        {
+          title: "⑦.② Dải số",
+          description: "Đặt số <strong>Từ</strong> và <strong>Đến</strong>.",
+          targetRef: "seqDialog",
+          targetSubSelector: 'input[type="number"]',
+          position: "bottom",
+          actionType: "input",
+          stepDone: false,
+        },
+        {
+          title: "⑦.③ Tạo chuỗi",
+          description: "Nhấp <strong>Tạo</strong> để thêm danh sách.",
+          targetRef: "seqDialog",
+          targetSubSelector: ".confirm",
+          position: "bottom",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑨ Kéo thả sắp xếp",
+          description:
+            "<strong>Kéo thả</strong> các công việc để thay đổi thứ tự.",
+          targetRef: "taskList",
+          targetSubSelector: "li.todo-item",
+          position: "top",
+          actionType: "drag",
+          stepDone: false,
+        },
+        {
+          title: "⑨.① Xóa mọi việc",
+          description:
+            "Nhấp <strong>Xóa toàn bộ</strong> ở thanh bên để dọn sạch.",
+          targetRef: "sidebar",
+          targetSubSelector: "input.clear-all",
+          position: "left",
+          actionType: "click",
+          stepDone: false,
+        },
+        {
+          title: "⑩ Tách việc VIP",
+          description:
+            'Gõ <strong>"VIP "</strong> trước tiêu đề và nhấn <strong>Thêm</strong> để AI tách nhỏ. Ví dụ: VIP công thức toán 3+2',
+          targetRef: "inputWrapper",
+          targetSubSelector: "input.add-content",
+          position: "bottom",
+          actionType: "input",
+          stepDone: false,
+        },
+        {
+          title: "⑪ Sửa câu Slogan",
+          description: "<strong>Nhấp đúp chuột</strong> vào slogan để sửa chữ.",
+          targetRef: "sloganBar",
+          targetSubSelector: ".bar-message-text",
+          position: "bottom",
+          actionType: "dblclick",
+          stepDone: false,
+        },
+        {
+          title: "⑧ Chế độ RUSH",
+          description:
+            "Nhấp <strong>Tạo mode RUSH</strong> để sang chế độ tính giờ.",
+          targetRef: "sidebar",
+          targetSubSelector: 'input[value="Tạo mode RUSH"]',
+          position: "left",
+          actionType: "none",
+          stepDone: false,
+        },
+      ];
+
+      const SequenceTaskDialog = {
+        name: "SequenceTaskDialog",
+        template: `  
+  <div class="custom-alert-overlay" @keydown="kd">  
+    <div class="custom-alert">  
+      <div class="custom-alert-title" style="text-align:center">Tạo việc tuần tự</div>
+      <div class="custom-alert-content">
+        <div style="margin-bottom:10px">
+          <label style="margin-right:16px;cursor:pointer"><input type="radio" v-model="position" value="prefix"/> Tiền tố <span style="opacity:.6;font-size:.85em">(x+Công việc)</span></label>
+          <label style="cursor:pointer"><input type="radio" v-model="position" value="suffix"/> Hậu tố <span style="opacity:.6;font-size:.85em">(Công việc+x)</span></label>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:4px;font-weight:600">Tên việc</label>
+          <input ref="nameInput" v-model="taskName" type="text" placeholder="VD: Phần 3." class="seq-input" @input="updatePreview"/>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:8px">
+          <div style="flex:1"><label style="display:block;margin-bottom:4px;font-weight:600">Từ</label><input v-model.number="fromNum" type="number" class="seq-input" @input="updatePreview"/></div>
+          <div style="flex:1"><label style="display:block;margin-bottom:4px;font-weight:600">Đến</label><input v-model.number="toNum" type="number" class="seq-input" @input="updatePreview"/></div>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:4px;font-weight:600">Xem trước</label>
+          <input :value="previewStart" disabled class="seq-input" style="background:#f3f3f3;color:#888"/>
+          <label style="display:block;margin:4px 0;font-weight:600">Đến</label>
+          <input :value="previewEnd" disabled class="seq-input" style="background:#f3f3f3;color:#888"/>
+        </div>
+        <div style="color:#e53935;font-size:.85em;min-height:18px">{{ errorMsg }}</div>
+      </div>
+      <div class="custom-alert-buttons">
+        <button class="custom-alert-btn cancel" @click="$emit('close')">Hủy</button>
+        <button class="custom-alert-btn confirm" @click="create" :disabled="creating">{{ creating ? 'Đang tạo…' : 'Tạo' }}</button>
+      </div>
+    </div>
+  </div>`,
+        data() {
+          return {
+            position: "suffix",
+            taskName: "",
+            fromNum: 1,
+            toNum: 5,
+            previewStart: "",
+            previewEnd: "",
+            errorMsg: "",
+            creating: false,
+          };
+        },
+        mounted() {
+          this.updatePreview();
+          this.$nextTick(
+            () => this.$refs.nameInput && this.$refs.nameInput.focus(),
+          );
+        },
+        watch: {
+          position() {
+            this.updatePreview();
+          },
+        },
+        methods: {
+          updatePreview() {
+            if (!this.taskName) {
+              this.previewStart = this.previewEnd = "";
+              return;
+            }
+            this.previewStart =
+              this.position === "suffix"
+                ? `${this.taskName}${this.fromNum}`
+                : `${this.fromNum}${this.taskName}`;
+            this.previewEnd =
+              this.position === "suffix"
+                ? `${this.taskName}${this.toNum}`
+                : `${this.toNum}${this.taskName}`;
+          },
+          validate() {
+            if (!this.taskName) {
+              this.errorMsg = "⚠ Tên công việc không được trống.";
+              return false;
+            }
+            if (isNaN(this.fromNum) || isNaN(this.toNum)) {
+              this.errorMsg = '⚠ "Từ" và "Đến" phải là số.';
+              return false;
+            }
+            if (this.fromNum > this.toNum) {
+              this.errorMsg = '⚠ "Từ" phải ≤ "Đến".';
+              return false;
+            }
+            this.errorMsg = "";
+            return true;
+          },
+          create() {
+            if (!this.validate()) return;
+            this.creating = true;
+            const tasks = [];
+            for (let i = this.fromNum; i <= this.toNum; i++) {
+              tasks.push({
+                title:
+                  this.position === "suffix"
+                    ? `${this.taskName}${i}`
+                    : `${i}${this.taskName}`,
+              });
+            }
+            this.$emit("create", tasks);
+          },
+          kd(e) {
+            if (e.key === "Escape") this.$emit("close");
+          },
+        },
+      };
+
+      const SidebarActions = {
+        name: "SidebarActions",
+        props: [
+          "todos",
+          "recycleBin",
+          "intention",
+          "leftTodosCount",
+          "completedTodosCount",
+          "isShow",
+          "shortCut",
+        ],
+        template: `
+  <div class="footer side-bar" :class="{fold: isShow}">
+    <div class="side-shortcut" @click="$emit('toggle-sidebar')">
+      <div class="shortcut-switch">
+        <span class="shortcut-title">{{ shortCut }}</span>
+        <span class="shortcut-name">Lối tắt</span>
+      </div>
+    </div>
+    <div class="todo-footer-box">
+      <ul class="todo-func-list filter">
+        <li><input class="btn-small action-showAll" type="button" value="Hiện Tất cả" :class="{selected: intention === 'all'}" @click="$emit('update:intention', 'all')"/></li>
+        <li v-if="completedTodosCount && leftTodosCount"><input class="btn-small action-progress" type="button" value="Task Chưa xong" :class="{selected: intention === 'ongoing'}" @click="$emit('update:intention', 'ongoing')"/></li>
+        <li v-if="completedTodosCount"><input class="btn-small action-completed" type="button" value="Task Đã xong" :class="{selected: intention === 'completed'}" @click="$emit('update:intention', 'completed')"/></li>
+        <li v-if="recycleBin.length"><input class="btn-small action-deleted" type="button" value="Thùng rác" :class="{selected: intention === 'removed'}" @click="$emit('update:intention', 'removed')"/></li>
+      </ul>
+      <ul class="todo-func-list batch">
+        <li v-if="leftTodosCount"><input type="button" class="btn-small completed-all" value="Done hết" @click="$emit('mark-all-completed')"/></li>
+        <li v-if="completedTodosCount"><input type="button" value="Xóa mục đã xong" class="btn-small completed-clear" @click="$emit('clear-completed')"/></li>
+        <li v-if="todos.length"><input type="button" class="btn-small clear-all" value="Xóa toàn bộ" @click="$emit('clear-all')"/></li>
+      </ul>
+      <ul class="todo-func-list batch">
+        <li><input type="button" value="Tạo việc tuần tự" class="btn-small action-import" @click="$emit('open-sequence-dialog')"/></li>
+        <li v-if="leftTodosCount"><input type="button" value="Tạo mode RUSH" class="btn-small action-import" @click="$emit('convert-rush')"/></li>
+      </ul>
+    </div>
+  </div>`,
+      };
+
+      const TutorialApp = {
+        name: "TutorialApp",
+        components: { SidebarActions, SequenceTaskDialog },
+
+        template: `
+  <div>
+    <template v-if="tutActive && !tutComplete">
+      <div v-for="(s, i) in panelStyles" :key="'panel-'+i" class="tut-panel" :style="s"></div>
+    </template>
+
+    <div v-if="tutActive && !tutComplete" class="tut-highlight-box" :style="highlightStyle"></div>
+
+    <div v-if="tutActive && !tutComplete && arrowStyle.display !== 'none'"
+         class="tut-arrow" :style="arrowStyle"></div>
+
+    <div v-if="tutActive && !tutComplete" class="tut-card" :style="cardStyle">
+      <div class="tut-counter">Bước {{ tutStep + 1 }} / {{ tutSteps.length }}</div>
+      <h3>{{ tutSteps[tutStep].title }}</h3>
+      <p v-html="tutSteps[tutStep].description"></p>
+      <div class="tut-btns">
+        <button class="tut-btn" @click="tutPrev" :disabled="tutStep === 0">← Trước</button>
+        <button
+          class="tut-btn tut-btn-primary"
+          @click="tutNext"
+          :disabled="!tutSteps[tutStep].stepDone && tutSteps[tutStep].actionType !== 'none'"
+        >{{ tutStep === tutSteps.length - 1 ? 'Hoàn thành ✓' : 'Tiếp →' }}</button>
+        <button class="tut-btn tut-btn-skip" @click="tutSkip">Bỏ qua</button>
+      </div>
+      <div
+        v-if="!tutSteps[tutStep].stepDone && tutSteps[tutStep].actionType !== 'none'"
+        class="tut-action-hint"
+      >👆 Hoàn thành thao tác trên để tiếp tục.</div>
+    </div>
+
+    <div v-if="tutComplete" class="tut-panel" style="inset:0;position:fixed;z-index:50000;pointer-events:all"></div>
+    <div v-if="tutComplete" class="tut-complete-card">
+      <div style="font-size:56px;margin-bottom:8px">🎉</div>
+      <h2>Bạn đã sẵn sàng!</h2>
+      <p>Bạn đã hoàn tất hướng dẫn. Hãy thoải mái trải nghiệm, hoặc khám phá chế độ RUSH.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="tut-btn tut-btn-primary" @click="tutComplete=false;tutActive=false">Trải nghiệm tự do</button>
+        <a href="rush-tutorial.html" style="text-decoration:none">
+          <button class="tut-btn" style="background:#ffd6e9">Thử Hướng dẫn RUSH →</button>
+        </a>
+      </div>
+    </div>
+
+    <button class="tut-fab" @click="reopenTutorial" title="Mở lại hướng dẫn">?</button>
+
+    <div class="container header">
+      <div class="todo-input">
+        <h1 class="title">
+          <div class="ani-vector"><span></span><span></span></div>
+          <div class="pendulums">
+            <div class="pendulum"><div class="bar"></div><div class="motion"><div class="string"></div><div class="weight"></div></div></div>
+          </div>
+          📝 Todo <span style="font-size:14px;font-weight:500;background:#f5d99e;border-radius:4px;padding:2px 8px;margin-left:8px;vertical-align:middle">Hướng dẫn</span>
+        </h1>
+        <div class="add-content-wrapper" ref="inputWrapper">
+          <input type="text" class="add-content"
+            placeholder="Thêm việc cần làm... (Thêm tiền tố 'VIP' để tách nhỏ)"
+            v-model="newTodoTitle"
+            @keyup.enter="addTodo"
+            :class="{empty: emptyChecked}"
+            :disabled="isProcessingVip"
+            autocomplete="off"
+          />
+          <div v-if="isProcessingVip" class="vip-processing">
+            <div class="loading-spinner"></div>
+            <span class="processing-text">{{ vipMsg }}</span>
+          </div>
+          <transition name="tips">
+            <div class="tips" v-if="emptyChecked" style="color:red">💡 Vui lòng nhập nội dung!</div>
+          </transition>
+          <button class="btn submit-btn" type="button" @click="addTodo" :disabled="isProcessingVip">
+            {{ isProcessingVip ? 'Đang xử lý...' : 'Thêm' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container main">
+      <div class="todo-list-box">
+        <div class="bar-message" ref="sloganBar">
+          <input type="button" class="btn btn-label btn-allFinish" value="Done hết"
+            @click="markAllCompleted" v-if="todos.length"/>
+          <div style="width:100%">
+            <div v-if="!isEditingSlogan" @dblclick="editSlogan" class="bar-message-text">{{ slogan }}</div>
+            <div v-else>
+              <input v-model="slogan" ref="sloganInput" class="slogan-input"
+                @keyup.enter="saveSlogan" @keyup.esc="cancelSlogan"/>
+              <div class="todo-btn btn-edit-submit slogan-btn" @click="saveSlogan">✓</div>
+            </div>
+          </div>
+        </div>
+
+        <ul v-if="!filteredTodos.length" class="empty-tips">
+          <li>Thêm nhiệm vụ đầu tiên của bạn! 📝</li>
+          <li>✔️ Nhấn Enter hoặc Thêm</li>
+          <li>✔️ Nhấp đúp chuột để sửa</li>
+          <li>✔️ Kéo thả để sắp xếp (PC)</li>
+          <li>✔️ Thêm tiền tố "VIP " để tách nhỏ</li>
+        </ul>
+
+        <ul class="todo-list" ref="taskList">
+          <li v-for="(todo, index) in filteredTodos" :key="todo.id"
+            class="todo-item"
+            :class="{'completed': todo.completed && !todo.removed, 'deleted': todo.removed}"
+            :ref="index === 0 ? 'firstTask' : undefined"
+            draggable="true"
+            @dragstart="dragStart(index)"
+            @dragenter.prevent="dragEnter(index)"
+            @dragover.prevent
+            @dragend="dragEnd"
+          >
+            <div v-if="editedTodoId !== todo.id"
+              class="todo-content" :class="{completed: todo.completed}"
+              @dblclick="startEdit(todo)" v-html="renderContent(todo.title)">
+            </div>
+            <div v-else class="todo-content" :class="{completed: todo.completed}">
+              <input type="text" class="edit-todo" v-model="todo.title"
+                @keyup.enter="saveTodoEdit(todo)" @keyup.esc="cancelTodoEdit(todo)"
+                ref="editInput" autocomplete="off"/>
+              <div class="todo-btn btn-edit-submit" @click="saveTodoEdit(todo)">✓</div>
+            </div>
+
+            <div class="todo-btn btn-finish" v-if="!todo.completed && !todo.removed" @click="completeTodo(todo)"></div>
+            <div class="todo-btn btn-unfinish" v-if="todo.completed && !todo.removed" @click="uncompleteTodo(todo)">
+              <img src="public/img/complete.svg" alt="Done" draggable="false"/>
+            </div>
+            <div class="todo-btn btn-restore" v-if="todo.removed" @click="restoreTodo(todo)">
+              <img src="public/img/restore.svg" alt="Restore" draggable="false"/>
+            </div>
+            <div class="todo-btn btn-delete" v-if="!todo.removed" @click="deleteTodo(todo)">
+              <img src="public/img/delete.svg" alt="Delete" draggable="false"/>
+            </div>
+          </li>
+        </ul>
+
+        <div class="bar-message bar-bottom">
+          <div class="bar-message-text">
+            <span v-if="leftTodosCount">{{ leftTodosCount }} mục còn lại</span>
+            <span v-else-if="completedTodosCount">Tuyệt vời, đã xong mọi việc!</span>
+          </div>
+        </div>
+      </div>
+
+      <SidebarActions ref="sidebar"
+        :todos="activeTodos"
+        :recycleBin="recycleBin"
+        :intention="intention"
+        :leftTodosCount="leftTodosCount"
+        :completedTodosCount="completedTodosCount"
+        :isShow="sidebarClosed"
+        :shortCut="sidebarLabel"
+        @update:intention="intention=$event"
+        @toggle-sidebar="toggleSidebar"
+        @mark-all-completed="markAllCompleted"
+        @clear-completed="clearCompleted"
+        @clear-all="clearAll"  
+        @open-sequence-dialog="openSeqDialog"  
+        @convert-rush="convertRush"  
+      />  
+    </div>
+
+    <div class="nav">
+      <span style="margin-right:12px;opacity:.7;font-size:14px">demo@tutorial.local</span>
+      <a href="index.html" style="text-decoration:none;margin-right:8px">
+        <button class="shortcut-title" style="background:var(--bg-discard);border-radius:3px">← Quay lại</button>
+      </a>
+      <a href="rush-tutorial.html" style="text-decoration:none">
+        <button class="shortcut-title" style="background:var(--bg-submit);border-radius:3px">Thử Hướng dẫn RUSH →</button>
+      </a>
+    </div>
+
+    <SequenceTaskDialog v-if="showSeqDialog"
+      ref="seqDialog"
+      @close="showSeqDialog=false"
+      @create="handleSequenceCreate"/>
+  </div>`,
+
+        data() {
+          return {
+            todos: [],
+            recycleBin: [],
+            newTodoTitle: "",
+            intention: "all",
+            emptyChecked: false,
+            editedTodoId: null,
+            editedTodoOrigTitle: "",
+            dragIdx: null,
+            sidebarClosed: false,
+            sidebarLabel: "Chức năng ✨",
+            slogan: "Hành động ngay. Đơn giản hóa cuộc sống. ☕",
+            isEditingSlogan: false,
+            originalSlogan: "",
+            isProcessingVip: false,
+            vipMsg: "",
+            vipMsgs: [
+              "Đang chia nhỏ công việc thành các bước...",
+              "Đang phân tích phương pháp tiếp cận...",
+              "Đang xây dựng các công việc phụ...",
+              "Đang xử lý chi tiết...",
+              "Sắp hoàn tất...",
+            ],
+            vipInterval: null,
+            showSeqDialog: false,
+            tutActive: true,
+            tutStep: 0,
+            tutComplete: false,
+            tutSteps: TUTORIAL_STEPS.map((s) => ({ ...s, stepDone: false })),
+            highlightStyle: {},
+            cardStyle: {},
+            arrowStyle: {},
+            panelStyles: [],
+            _tutFiltersVisited: [],
+            _tutBatchVisited: [],
+          };
+        },
+
+        computed: {
+          activeTodos() {
+            return this.todos.filter((t) => !t.removed);
+          },
+          leftTodos() {
+            return this.todos.filter((t) => !t.completed && !t.removed);
+          },
+          leftTodosCount() {
+            return this.leftTodos.length;
+          },
+          completedTodos() {
+            return this.todos.filter((t) => t.completed && !t.removed);
+          },
+          completedTodosCount() {
+            return this.completedTodos.length;
+          },
+          filteredTodos() {
+            switch (this.intention) {
+              case "ongoing":
+                return this.leftTodos;
+              case "completed":
+                return this.completedTodos;
+              case "removed":
+                return this.recycleBin;
+              default:
+                return this.activeTodos;
+            }
+          },
+        },
+
+        async mounted() {
+          const raw = await MockApi.getTasks();
+          this.todos = raw.map((t) => ({ ...t }));
+          this.$nextTick(() => {
+            this.computeTutorialLayout();
+          });
+          window.addEventListener("resize", this.computeTutorialLayout);
+          window.addEventListener("scroll", this.computeTutorialLayout, {
+            passive: true,
+          });
+          window.addEventListener("touchmove", this.computeTutorialLayout, {
+            passive: true,
+          });
+          this.$nextTick(() => {
+            const listEl = this.$refs.taskList;
+            if (listEl)
+              listEl.addEventListener("scroll", this.computeTutorialLayout, {
+                passive: true,
+              });
+          });
+        },
+
+        beforeDestroy() {
+          window.removeEventListener("resize", this.computeTutorialLayout);
+          window.removeEventListener("scroll", this.computeTutorialLayout);
+          window.removeEventListener("touchmove", this.computeTutorialLayout);
+          const listEl = this.$refs.taskList;
+          if (listEl)
+            listEl.removeEventListener("scroll", this.computeTutorialLayout);
+        },
+
+        watch: {
+          tutStep() {
+            this._tutFiltersVisited = [];
+            this._tutBatchVisited = [];
+            this.tutSteps.forEach((s) => {
+              s.stepDone = false;
+              s._listenerAttached = false;
+            });
+            this.$nextTick(() => this.computeTutorialLayout());
+          },
+          tutActive() {
+            if (this.tutActive)
+              this.$nextTick(() => this.computeTutorialLayout());
+            else this.panelStyles = [];
+          },
+          intention(val) {
+            if (this.tutActive && !this.tutComplete && this.tutStep === 4) {
+              if (!this._tutFiltersVisited.includes(val))
+                this._tutFiltersVisited.push(val);
+              if (
+                this._tutFiltersVisited.includes("ongoing") &&
+                this._tutFiltersVisited.includes("completed") &&
+                this._tutFiltersVisited.includes("all")
+              ) {
+                this._fireTutHook("filterChange");
+              }
+            } else if (val !== "all") {
+              this._fireTutHook("filterChange");
+            }
+          },
+        },
+
+        methods: {
+          /* ── Render ── */
+          renderContent(title) {
+            let s = title;
+            s = s.replace(/fPrompt\[.*?fPromptEnd\]/gs, "").trim();
+            if (window.katex) {
+              s = s.replace(/\$\$([^$]+)\$\$/g, (m, c) => {
+                try {
+                  return katex.renderToString(c.trim(), {
+                    displayMode: true,
+                    throwOnError: false,
+                  });
+                } catch (e) {
+                  return m;
+                }
+              });
+              s = s.replace(/\$([^$]+)\$/g, (m, c) => {
+                try {
+                  return katex.renderToString(c.trim(), {
+                    displayMode: false,
+                    throwOnError: false,
+                  });
+                } catch (e) {
+                  return m;
+                }
+              });
+            }
+            return s;
+          },
+
+          async addTodo() {
+            if (!this.newTodoTitle.trim()) {
+              this.emptyChecked = true;
+              return;
+            }
+            this.emptyChecked = false;
+            const raw = this.newTodoTitle.trim();
+            this.newTodoTitle = "";
+            if (raw.toLowerCase().startsWith("vip ")) {
+              await this.handleVIP(raw.substring(4).trim());
+            } else {
+              const res = await MockApi.createTask(raw);
+              this.todos.push({ ...res });
+              this._fireTutHook("addTodo-normal");
+            }
+          },
+          async handleVIP(title) {
+            this.isProcessingVip = true;
+            this.vipMsg = this.vipMsgs[0];
+            let i = 0;
+            this.vipInterval = setInterval(() => {
+              i = (i + 1) % this.vipMsgs.length;
+              this.vipMsg = this.vipMsgs[i];
+            }, 800);
+            try {
+              const res = await MockApi.createLongTask(title);
+              const subtasks = res.data || [];
+              subtasks.forEach((t) =>
+                this.todos.push({
+                  id: t.id,
+                  title: t.title,
+                  completed: false,
+                  removed: false,
+                }),
+              );
+              this.celebrate();
+              await mockAlert(
+                `Đã tạo ${subtasks.length} việc phụ từ công việc VIP!`,
+              );
+
+              this._fireTutHook("addTodo-vip");
+            } finally {
+              clearInterval(this.vipInterval);
+              this.vipInterval = null;
+              this.isProcessingVip = false;
+              this.vipMsg = "";
+            }
+          },
+          completeTodo(todo) {
+            todo.completed = true;
+            this.celebrate();
+            MockApi.finishTask(todo.id);
+            this._fireTutHook("completeTodo");
+          },
+          uncompleteTodo(todo) {
+            todo.completed = false;
+            MockApi.finishTask(todo.id);
+          },
+          deleteTodo(todo) {
+            const idx = this.todos.indexOf(todo);
+            if (idx === -1) return;
+            this.todos.splice(idx, 1);
+            this.recycleBin.unshift({ ...todo, removed: true });
+            MockApi.deleteTask(todo.id);
+            // ── Hook: step ④ ──
+            this._fireTutHook("deleteTodo");
+          },
+          restoreTodo(todo) {
+            const idx = this.recycleBin.indexOf(todo);
+            if (idx === -1) return;
+            this.recycleBin.splice(idx, 1);
+            this.todos.unshift({ ...todo, removed: false });
+          },
+          startEdit(todo) {
+            this.editedTodoId = todo.id;
+            this.editedTodoOrigTitle = todo.title;
+            this.$nextTick(() => {
+              const el = this.$refs.editInput;
+              if (el) (Array.isArray(el) ? el[0] : el).focus();
+            });
+          },
+          saveTodoEdit(todo) {
+            if (!todo.title.trim()) todo.title = this.editedTodoOrigTitle;
+            this.editedTodoId = null;
+            MockApi.updateTask(todo.id, todo.title);
+            this._fireTutHook("saveTodoEdit");
+          },
+          cancelTodoEdit(todo) {
+            todo.title = this.editedTodoOrigTitle;
+            this.editedTodoId = null;
+          },
+          async markAllCompleted() {
+            const ok =
+              this.tutActive && this.tutStep === 5
+                ? true
+                : await mockConfirm("Xác nhận đánh dấu xong tất cả?");
+            if (!ok) return;
+            this.leftTodos.forEach((t) => {
+              t.completed = true;
+            });
+            this.celebrate();
+            this._fireTutHook("completeTodo");
+            this._fireTutHook("batchFinish");
+          },
+          async clearCompleted() {
+            const ok =
+              this.tutActive && this.tutStep === 5
+                ? true
+                : await mockConfirm("Xác nhận xóa các mục đã hoàn thành?");
+            if (!ok) return;
+            const comp = this.completedTodos.slice();
+            comp.forEach((t) => {
+              const i = this.todos.indexOf(t);
+              if (i !== -1) {
+                this.todos.splice(i, 1);
+                this.recycleBin.unshift({ ...t, removed: true });
+              }
+            });
+            this._fireTutHook("batchClear");
+          },
+          async clearAll() {
+            const ok =
+              this.tutActive && (this.tutStep === 5 || this.tutStep === 11)
+                ? true
+                : await mockConfirm("Xác nhận xóa toàn bộ danh sách?");
+            if (!ok) return;
+            this.recycleBin = [
+              ...this.recycleBin,
+              ...this.todos.map((t) => ({ ...t, removed: true })),
+            ];
+            this.todos = [];
+            this._fireTutHook("batchClear");
+            this._fireTutHook("clearAllTasks");
+          },
+          handleSequenceCreate(tasks) {
+            tasks.forEach(async (t) => {
+              const res = await MockApi.createTask(t.title);
+              this.todos.push({ ...res });
+            });
+            this.showSeqDialog = false;
+            this._fireTutHook("seqCreated");
+          },
+          convertRush() {
+            const actives = this.leftTodos;
+            if (!actives.length) {
+              mockAlert("Không có công việc nào để tải vào RUSH.");
+              return;
+            }
+            mockConfirm(
+              `Đưa ${actives.length} công việc sang chế độ RUSH?`,
+            ).then((ok) => {
+              if (!ok) return;
+              const rushTasks = actives.map((t) => ({
+                id: Date.now() + Math.random(),
+                title: t.title,
+                hl: 1,
+                completed: false,
+                allocatedTime: 0,
+                actualTime: 0,
+                startTime: null,
+                deadline: 0,
+              }));
+              localStorage.setItem(
+                "rush-imported-tasks",
+                JSON.stringify(rushTasks),
+              );
+              window.location.href = "rush-tutorial.html";
+            });
+          },
+
+          dragStart(index) {
+            this.dragIdx = index;
+          },
+          dragEnter(index) {
+            if (this.dragIdx === null || this.dragIdx === index) return;
+            const list = [...this.filteredTodos];
+            const moved = list.splice(this.dragIdx, 1)[0];
+            list.splice(index, 0, moved);
+            if (this.intention === "all" || this.intention === undefined) {
+              this.todos = list;
+            }
+            this.dragIdx = index;
+          },
+          async dragEnd() {
+            if (this.dragIdx !== null)
+              MockApi.moveTask("mock", this.dragIdx + 1);
+            this._fireTutHook("drag");
+            this.dragIdx = null;
+          },
+
+          editSlogan() {
+            this.originalSlogan = this.slogan;
+            this.isEditingSlogan = true;
+            this.$nextTick(() => {
+              const i = this.$refs.sloganInput;
+              if (i) i.focus();
+            });
+          },
+          saveSlogan() {
+            this.isEditingSlogan = false;
+            this._fireTutHook("saveSlogan");
+          },
+          cancelSlogan() {
+            this.slogan = this.originalSlogan;
+            this.isEditingSlogan = false;
+          },
+
+          toggleSidebar() {
+            this.sidebarClosed = !this.sidebarClosed;
+            this.sidebarLabel = this.sidebarClosed ? "＝" : "Chức năng ✨";
+          },
+
+          openSeqDialog() {
+            this.showSeqDialog = true;
+            this._fireTutHook("openSeqDialog");
+          },
+
+          celebrate() {
+            if (typeof confetti === "undefined") return;
+            confetti({
+              particleCount: 200,
+              startVelocity: 70,
+              angle: 45,
+              spread: 60,
+              origin: { x: 0, y: 1 },
+            });
+            confetti({
+              particleCount: 200,
+              startVelocity: 70,
+              angle: 135,
+              spread: 60,
+              origin: { x: 1, y: 1 },
+            });
+          },
+
+          _fireTutHook(hookKey) {
+            if (!this.tutActive || this.tutComplete) return;
+            const step = this.tutSteps[this.tutStep];
+            if (step.stepDone) return;
+            if (this.tutStep === 5) {
+              if (hookKey !== "batchFinish" && hookKey !== "batchClear") return;
+              if (!this._tutBatchVisited.includes(hookKey))
+                this._tutBatchVisited.push(hookKey);
+              if (
+                !this._tutBatchVisited.includes("batchFinish") ||
+                !this._tutBatchVisited.includes("batchClear")
+              )
+                return;
+              step.stepDone = true;
+              this.$nextTick(() =>
+                setTimeout(() => {
+                  if (
+                    this.tutActive &&
+                    !this.tutComplete &&
+                    this.tutSteps[this.tutStep].stepDone
+                  )
+                    this.tutNext();
+                }, 400),
+              );
+              return;
+            }
+
+            const hookMap = {
+              0: ["addTodo-normal"],
+              1: ["completeTodo"],
+              2: ["saveTodoEdit"],
+              3: ["deleteTodo"],
+              4: ["filterChange"],
+              6: ["openSeqDialog"],
+              7: ["anyInput"],
+              8: ["anyInput"],
+              9: ["seqCreated"],
+              10: ["drag"],
+              11: ["clearAllTasks"],
+              12: ["addTodo-vip"],
+              13: ["saveSlogan"],
+            };
+
+            const validKeys = hookMap[this.tutStep];
+            if (!validKeys || !validKeys.includes(hookKey)) return;
+
+            step.stepDone = true;
+            this.$nextTick(() =>
+              setTimeout(() => {
+                if (
+                  this.tutActive &&
+                  !this.tutComplete &&
+                  this.tutSteps[this.tutStep].stepDone
+                ) {
+                  this.tutNext();
+                }
+              }, 400),
+            );
+          },
+
+          attachStepListener(step, el) {
+            if (!el || step.actionType === "none") return;
+            if (step.actionType === "dblclick") return;
+            if (
+              step.actionType === "input" &&
+              step.targetRef === "inputWrapper"
+            )
+              return;
+            if (
+              step.targetRef === "sidebar" &&
+              !step.targetSubSelector &&
+              step.actionType === "click"
+            )
+              return;
+
+            const target = step.targetSubSelector
+              ? el.querySelector(step.targetSubSelector) || el
+              : el;
+
+            if (step._listenerAttached) return;
+            step._listenerAttached = true;
+
+            if (step.actionType === "input") {
+              const fire = () => this._fireTutHook("anyInput");
+              if (target.type === "number") {
+                fire();
+                return;
+              }
+              target.addEventListener("input", () => {
+                if (target.value.trim()) fire();
+              });
+              return;
+            }
+
+            const eventMap = { click: "click" };
+            const evtName = eventMap[step.actionType];
+            if (!evtName) return;
+
+            target.addEventListener(
+              evtName,
+              () => {
+                if (!step.stepDone) {
+                  step.stepDone = true;
+                  this.$nextTick(() =>
+                    setTimeout(() => {
+                      if (
+                        this.tutActive &&
+                        !this.tutComplete &&
+                        this.tutSteps[this.tutStep].stepDone
+                      ) {
+                        this.tutNext();
+                      }
+                    }, 400),
+                  );
+                }
+              },
+              { once: true },
+            );
+          },
+          getRefEl(refName) {
+            const r = this.$refs[refName];
+            if (!r) return null;
+            if (r.$el) return r.$el;
+            if (Array.isArray(r)) return r[0]?.$el || r[0];
+            return r;
+          },
+          computeTutorialLayout() {
+            if (!this.tutActive || this.tutComplete) {
+              this.panelStyles = [];
+              return;
+            }
+            const step = this.tutSteps[this.tutStep];
+            const containerEl = this.getRefEl(step.targetRef);
+
+            if (!containerEl) {
+              this.highlightStyle = {};
+              this.arrowStyle = { display: "none" };
+              this.panelStyles = [];
+              this.positionCard(null, step.position, null);
+              return;
+            }
+
+            const targetEl = step.targetSubSelector
+              ? containerEl.querySelector(step.targetSubSelector) || containerEl
+              : containerEl;
+
+            const dialogBox =
+              containerEl.querySelector(".custom-alert") || null;
+            const avoidEl = dialogBox || containerEl;
+
+            const r = targetEl.getBoundingClientRect();
+            const rContainer = avoidEl.getBoundingClientRect();
+            const pad = 8;
+
+            this.highlightStyle = {
+              top: r.top - pad + "px",
+              left: r.left - pad + "px",
+              width: r.width + pad * 2 + "px",
+              height: r.height + pad * 2 + "px",
+            };
+
+            this._computePanels(rContainer, pad);
+
+            if (step.blockSelectors && step.blockSelectors.length) {
+              const extraPad = 3;
+              step.blockSelectors.forEach((sel) => {
+                const btnEl = containerEl.querySelector(sel);
+                if (!btnEl) return;
+                const br = btnEl.getBoundingClientRect();
+                if (br.width === 0 && br.height === 0) return;
+                this.panelStyles.push({
+                  position: "fixed",
+                  top: br.top - extraPad + "px",
+                  left: br.left - extraPad + "px",
+                  width: br.width + extraPad * 2 + "px",
+                  height: br.height + extraPad * 2 + "px",
+                  background: "rgba(0,0,0,0.72)",
+                  zIndex: "50001",
+                  pointerEvents: "all",
+                  borderRadius: "4px",
+                });
+              });
+            }
+
+            this._computeArrow(r, pad, step.position);
+            this.positionCard(r, step.position, rContainer);
+
+            if (!step._listenerAttached) {
+              this.attachStepListener(step, containerEl);
+            }
+          },
+          _computePanels(r, pad) {
+            const vw = window.innerWidth,
+              vh = window.innerHeight;
+            const t = r.top - pad,
+              b = r.bottom + pad,
+              l = r.left - pad,
+              ri = r.right + pad,
+              h = r.height + pad * 2;
+            this.panelStyles = [
+              {
+                top: "0",
+                left: "0",
+                width: "100vw",
+                height: Math.max(0, t) + "px",
+              },
+              {
+                top: b + "px",
+                left: "0",
+                width: "100vw",
+                height: Math.max(0, vh - b) + "px",
+              },
+              {
+                top: t + "px",
+                left: "0",
+                width: Math.max(0, l) + "px",
+                height: h + "px",
+              },
+              {
+                top: t + "px",
+                left: ri + "px",
+                width: Math.max(0, vw - ri) + "px",
+                height: h + "px",
+              },
+            ].map((s) => ({
+              ...s,
+              position: "fixed",
+              background: "rgba(0,0,0,0.55)",
+              zIndex: "50000",
+              pointerEvents: "all",
+            }));
+          },
+          _computeArrow(r, pad, pos) {
+            const sz = 22,
+              gap = 14;
+            let style = {
+              position: "fixed",
+              zIndex: "50003",
+              pointerEvents: "none",
+              width: "0",
+              height: "0",
+            };
+            if (pos === "bottom") {
+              Object.assign(style, {
+                borderLeft: `${sz}px solid transparent`,
+                borderRight: `${sz}px solid transparent`,
+                borderTop: `${sz * 1.4}px solid #f59e0b`,
+                top: r.top - pad - sz * 1.4 - gap + "px",
+                left: r.left + r.width / 2 - sz + "px",
+                "--arrow-dx": "0px",
+                "--arrow-dy": `${gap}px`,
+              });
+            } else if (pos === "top") {
+              Object.assign(style, {
+                borderLeft: `${sz}px solid transparent`,
+                borderRight: `${sz}px solid transparent`,
+                borderBottom: `${sz * 1.4}px solid #f59e0b`,
+                top: r.bottom + pad + gap + "px",
+                left: r.left + r.width / 2 - sz + "px",
+                "--arrow-dx": "0px",
+                "--arrow-dy": `-${gap}px`,
+              });
+            } else if (pos === "left") {
+              Object.assign(style, {
+                borderTop: `${sz}px solid transparent`,
+                borderBottom: `${sz}px solid transparent`,
+                borderRight: `${sz * 1.4}px solid #f59e0b`,
+                top: r.top + r.height / 2 - sz + "px",
+                left: r.right + pad + gap + "px",
+                "--arrow-dx": `-${gap}px`,
+                "--arrow-dy": "0px",
+              });
+            } else {
+              Object.assign(style, {
+                borderTop: `${sz}px solid transparent`,
+                borderBottom: `${sz}px solid transparent`,
+                borderLeft: `${sz * 1.4}px solid #f59e0b`,
+                top: r.top + r.height / 2 - sz + "px",
+                left: r.left - pad - sz * 1.4 - gap + "px",
+                "--arrow-dx": `${gap}px`,
+                "--arrow-dy": "0px",
+              });
+            }
+            this.arrowStyle = style;
+          },
+          positionCard(r, pos, rContainer) {
+            const cardW = 370;
+            const cardEl = this.$el && this.$el.querySelector(".tut-card");
+            const cardH =
+              cardEl && cardEl.offsetHeight > 0 ? cardEl.offsetHeight : 260;
+            const margin = 16;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const pad = 8;
+            const avoidRect = rContainer && rContainer !== r ? rContainer : r;
+
+            let top, left;
+
+            const placeForPos = (p, rect) => {
+              let t, l;
+              if (!rect) {
+                t = vh / 2 - cardH / 2;
+                l = vw / 2 - cardW / 2;
+              } else if (p === "bottom") {
+                t = rect.bottom + margin;
+                l = Math.min(rect.left, vw - cardW - margin);
+              } else if (p === "top") {
+                t = rect.top - cardH - margin;
+                l = Math.min(rect.left, vw - cardW - margin);
+              } else if (p === "left") {
+                t = rect.top;
+                l = rect.left - cardW - margin;
+              } else {
+                t = rect.top;
+                l = rect.right + margin;
+              }
+              return { t, l };
+            };
+
+            const overlaps = (ct, cl, rect) => {
+              if (!rect) return false;
+              const hl = rect.left - pad,
+                hr = rect.right + pad;
+              const ht = rect.top - pad,
+                hb = rect.bottom + pad;
+              return !(
+                cl + cardW < hl ||
+                cl > hr ||
+                ct + cardH < ht ||
+                ct > hb
+              );
+            };
+
+            const positions = [pos, "bottom", "top", "left", "right"];
+            let placed = false;
+
+            for (const p of positions) {
+              const { t, l } = placeForPos(p, avoidRect);
+              const ct = Math.max(margin, Math.min(t, vh - cardH - margin));
+              const cl = Math.max(margin, Math.min(l, vw - cardW - margin));
+              if (!overlaps(ct, cl, avoidRect)) {
+                top = ct;
+                left = cl;
+                placed = true;
+                break;
+              }
+            }
+
+            if (!placed && avoidRect) {
+              const { t } = placeForPos(pos, avoidRect);
+              top = Math.max(margin, Math.min(t, vh - cardH - margin));
+              const rightLeft = avoidRect.right + pad + margin;
+              const leftLeft = avoidRect.left - pad - cardW - margin;
+              left =
+                rightLeft + cardW + margin <= vw
+                  ? rightLeft
+                  : leftLeft >= margin
+                    ? leftLeft
+                    : margin;
+            }
+
+            this.cardStyle = { top: top + "px", left: left + "px" };
+          },
+          tutNext() {
+            if (this.tutStep < this.tutSteps.length - 1) this.tutStep++;
+            else {
+              this.tutComplete = true;
+              this.tutActive = false;
+            }
+          },
+          tutPrev() {
+            if (this.tutStep > 0) this.tutStep--;
+          },
+          tutSkip() {
+            this.tutActive = false;
+            this.tutComplete = false;
+            this.panelStyles = [];
+          },
+          reopenTutorial() {
+            this.tutStep = 0;
+            this.tutComplete = false;
+            this.tutActive = true;
+            this.$nextTick(() => this.computeTutorialLayout());
+          },
+        },
+      };
+
+      new Vue({ el: "#todo-tutorial-app", render: (h) => h(TutorialApp) });
+    </script>
+  </body>
+</html>

@@ -20,7 +20,7 @@ export default {
       >
         <div class="shortcut-switch">
           <span class="shortcut-title">{{ shortCut }}</span>
-          <span class="shortcut-name">Quicks</span>
+          <span class="shortcut-name">{{ $t('quicks') }}</span>
         </div>
         <div v-if="currentKey" style="font-size:11px; opacity:.65; padding:2px 6px; text-align:center;">
           {{ currentKey }}
@@ -33,7 +33,7 @@ export default {
             <input
               class="btn-small action-showAll"
               type="button"
-              value="All"
+              :value="$t('filterAll')"
               :class="{selected: intention === 'all'}"
               @click="$emit('update:intention', 'all')"
             />
@@ -42,7 +42,7 @@ export default {
             <input
               class="btn-small action-progress"
               type="button"
-              value="In Progress"
+              :value="$t('filterInProgress')"
               v-if="leftTodosCount"
               :class="{selected: intention === 'ongoing'}"
               @click="$emit('update:intention', 'ongoing')"
@@ -52,7 +52,7 @@ export default {
             <input
               class="btn-small action-completed"
               type="button"
-              value="Completed"
+              :value="$t('filterCompleted')"
               :class="{selected: intention === 'completed'}"
               @click="$emit('update:intention', 'completed')"
             />
@@ -62,7 +62,7 @@ export default {
               class="btn-small action-deleted"
               type="button"
               :class="{selected: intention === 'removed'}"
-              value="Trash"
+              :value="$t('filterTrash')"
               @click="$emit('update:intention', 'removed')"
             />
           </li>
@@ -73,14 +73,14 @@ export default {
             <input
               type="button"
               class="btn-small completed-all"
-              value="Finish all"
+              :value="$t('finishAll')"
               @click="$emit('mark-all-completed')"
             />
           </li>
           <li v-if="completedTodosCount">
             <input
               type="button"
-              value="Clear Completed"
+              :value="$t('clearCompleted')"
               class="btn-small completed-clear"
               @click="$emit('clear-completed')"
             />
@@ -89,7 +89,7 @@ export default {
             <input
               type="button"
               class="btn-small clear-all"
-              value="Clear All"
+              :value="$t('clearAll')"
               @click="$emit('clear-all')"
             />
           </li>
@@ -99,7 +99,7 @@ export default {
           <li>
             <input
               type="button"
-              value="Sequence Task"
+              :value="$t('sequenceTask')"
               class="btn-small action-import"
               @click="$emit('open-sequence-dialog')"
             />
@@ -107,7 +107,7 @@ export default {
           <li v-if="leftTodosCount">
             <input
               type="button"
-              value="Convert RUSH"
+              :value="$t('convertRush')"
               class="btn-small action-import"
               @click="$emit('convert-rush')"
             />
@@ -115,7 +115,7 @@ export default {
           <li>
             <input
               type="button"
-              value="Change Space"
+              :value="$t('changeSpace')"
               class="btn-small action-import"
               @click="$emit('open-space-dialog')"
             />

@@ -17,11 +17,12 @@ export class DialogUtils {
         return alertBox;
     }
 
-    static alert(message, title = 'Prompt') {
+    static alert(message, title) {
         return new Promise((resolve) => {
+            const resolvedTitle = title ?? (window._t ? window._t('defaultAlertTitle') : 'Prompt');
             const overlay = this.createOverlay();
-            const alertBox = this.createAlertBox(title, message,
-                '<button class="custom-alert-btn confirm">OK</button>'
+            const alertBox = this.createAlertBox(resolvedTitle, message,
+                `<button class="custom-alert-btn confirm">${window._t ? window._t('okBtn') : 'OK'}</button>`
             );
 
             overlay.appendChild(alertBox);
@@ -44,11 +45,12 @@ export class DialogUtils {
         });
     }
 
-    static confirm(message, title = 'Please Confirm') {
+    static confirm(message, title) {
         return new Promise((resolve) => {
+            const resolvedTitle = title ?? (window._t ? window._t('defaultConfirmTitle') : 'Please Confirm');
             const overlay = this.createOverlay();
-            const alertBox = this.createAlertBox(title, message,
-                '<button class="custom-alert-btn cancel">Cancel</button><button class="custom-alert-btn confirm">OK</button>'
+            const alertBox = this.createAlertBox(resolvedTitle, message,
+                `<button class="custom-alert-btn cancel">${window._t ? window._t('cancelBtn') : 'Cancel'}</button><button class="custom-alert-btn confirm">${window._t ? window._t('okBtn') : 'OK'}</button>`
             );
 
             overlay.appendChild(alertBox);

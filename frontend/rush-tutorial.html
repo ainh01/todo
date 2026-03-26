@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hướng dẫn RUSH – Tìm hiểu chế độ RUSH</title>
+  <link href="public/css/normalize.css" rel="stylesheet" media="screen"/>
+  <link href="public/css/style.min.css" rel="stylesheet" media="screen"/>
+  <link href="public/css/tutorial.css" rel="stylesheet" media="screen"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+    integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous"/>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+  <style>
+    /* ── RUSH vars ── */
+    @font-face{font-family:"Achievement";src:url("public/font/achievement.otf") format("opentype");font-weight:normal;font-style:normal}
+    .special-text{font-family:"Achievement",sans-serif}
+    :root{--rush-red:#dc2626;--rush-red-light:#fef2f2;--rush-red-dark:#991b1b;--rush-green:#4e1f1f;--rush-orange:#ea580c;--completed:#740202}
+    .rush-mode{background:linear-gradient(135deg,var(--rush-red-light),var(--body-bg))}
+    .timer-display{font-family:"Courier New",monospace;font-weight:bold;font-size:18px;padding:8px 16px;border:2px solid var(--rush-red);border-radius:var(--border-radius);background:white;color:var(--rush-red);text-align:center;min-width:100px;opacity:.74}
+    .timer-negative{background:var(--rush-red)!important;color:white!important;animation:pulse 1s infinite}
+    .timer-completion{font-weight:bold;padding:4px 8px;border-radius:4px;font-size:14px}
+    .timer-early{background:var(--rush-red);color:white}
+    .timer-late{background:var(--rush-green);color:white}
+    .session-controls{display:flex;gap:12px;margin:16px 0;justify-content:center;align-items:center;flex-wrap:wrap}
+    .rush-btn{margin-top:10px;padding:12px 24px;border:2px solid var(--rush-red);border-radius:var(--border-radius);background:white;color:var(--rush-red);font-weight:bold;cursor:pointer;transition:all .3s}
+    .rush-btn:hover{background:var(--rush-red);color:white;transform:translate(-2px,-2px);box-shadow:4px 4px 0px var(--rush-red-dark)}
+    .rush-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .rush-btn-primary{background:var(--rush-red);color:white}
+    .rush-btn-primary:hover{background:var(--rush-red-dark);box-shadow:4px 4px 0px var(--black)}
+    .hardness-input{width:80px;margin-left:8px;text-align:center}
+    .rating-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:center;z-index:10000}
+    .rating-content{background:white;padding:32px;border-radius:var(--border-radius);border:var(--border);box-shadow:var(--box-shadow);text-align:center;max-width:420px;width:90%}
+    .rating-grade{font-size:56px;font-weight:bold;margin:16px 0;font-family:"Achievement",sans-serif}
+    .rating-sss{color:#ac5cf6}.rating-ss{color:#c5a800}.rating-s{color:var(--rush-green)}.rating-a{color:var(--rush-orange)}.rating-f{color:var(--rush-red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    .rush-task-item{position:relative;cursor:grab}
+    .rush-task-item:active{cursor:grabbing}
+    .rush-task-item.active{border-color:var(--rush-red);box-shadow:0 0 120px rgba(220,38,38,.83);position:relative;z-index:999}
+    .rush-task-item.drag-over{border-top:3px solid var(--rush-red)}
+    .rush-task-item.completed{opacity:.85}
+    .task-timer{position:absolute;top:16px;right:96px}
+    .task-allocated-timer{position:absolute;top:35px;right:50px;font-family:"Courier New",monospace;font-size:14px;color:var(--rush-red);font-weight:bold;background:rgba(220,38,38,.1);padding:4px 8px;border-radius:4px}
+    .ttc-input{display:flex;align-items:center;gap:12px;justify-content:center;margin:16px 0}
+    .ttc-input input{width:120px;text-align:center}
+    .task-edit-input{background:#fff;border:2px solid var(--rush-red);padding:var(--padding);width:100%;border-radius:var(--border-radius);font-size:16px;outline:none;box-sizing:border-box}
+    .hl-edit-input{width:60px;text-align:center;margin-left:8px;padding:4px;border:1px solid var(--rush-red);border-radius:4px}
+    .task-controls{position:absolute;top:16px;right:12px;display:flex;gap:4px}
+    .task-control-btn{width:24px;height:24px;border:1px solid var(--rush-red);border-radius:4px;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--rush-red);transition:all .2s}
+    .task-control-btn:hover{background:var(--rush-red);color:white}
+    .todo-content.completed{text-decoration:none!important;opacity:.7}
+
+    /* ── countdown ── */
+    .countdown-overlay{position:fixed;inset:0;background:rgba(0,78,137,.482);z-index:99999;display:flex;align-items:center;justify-content:center}
+    .demo{position:relative;width:500px;height:140px;padding:10px;border-radius:20px;font-family:Helvetica,Arial,sans-serif}
+    .demo__colored-blocks{overflow:hidden;position:absolute;left:50%;top:0;width:500px;height:100%;margin-left:-250px;padding:10px;border-radius:20px;perspective:1000px;animation:demoAnim 6s ease-in-out 1 both,contAnim 6s 1 both}
+    .demo__colored-blocks-rotater{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:inherit;animation:rotation 1.3s linear infinite}
+    .demo__colored-blocks-inner{overflow:hidden;position:relative;height:100%;background:#800016;border-radius:inherit}
+    .demo__colored-block{position:absolute;left:50%;top:50%;width:300%;height:300%;transform-origin:0 0}
+    .demo__colored-block:nth-child(1){transform:rotate(0deg) skewX(30deg);background-color:#a0001c}
+    .demo__colored-block:nth-child(2){transform:rotate(120deg) skewX(30deg);background-color:#c00021}
+    .demo__colored-block:nth-child(3){transform:rotate(240deg) skewX(30deg);background-color:#ff002b}
+    .demo__inner{overflow:hidden;position:relative;width:100%;height:100%}
+    .demo__numbers{overflow:visible;position:absolute;left:50%;top:50%;width:100px;height:100px;margin-left:-50px;margin-top:-50px}
+    .demo__numbers-path{fill:none;stroke-width:10px;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:0,518.055;stroke-dashoffset:0;animation:numAnim 6s ease-in-out 1;opacity:0}
+    .demo__text{position:absolute;left:50%;top:0;width:500px;height:100%;margin-left:-250px;text-align:center;line-height:140px;font-size:100px;color:#fff;text-transform:uppercase;letter-spacing:15px;transform:translateX(10px);opacity:0;animation:hideTextReady 6s 1}
+    .demo__text--go{animation:hideTextGo 6s 1}
+    @keyframes contAnim{0%,12%{margin-left:-250px;width:500px}18%,75%{margin-left:-70px;width:140px}80%,100%{margin-left:-250px;width:500px}}
+    @keyframes numAnim{0%,15%{stroke-dasharray:0,518.055;stroke-dashoffset:0;opacity:0}18%,33%{opacity:1;stroke-dasharray:144.426,518.055;stroke-dashoffset:-40}38%,53%{stroke-dasharray:136.022,518.055;stroke-dashoffset:-227.239}58%{stroke-dasharray:113.475,518.055;stroke-dashoffset:-445.9}63%,73%{stroke-dasharray:72.155,518.055;stroke-dashoffset:-445.9}74%{opacity:1}78%,100%{opacity:0}}
+    @keyframes rotation{to{transform:rotate(360deg)}}
+    @keyframes demoAnim{0%,12%{border-radius:20px;transform:rotate(0deg)}18%,33%{border-radius:50%;transform:rotate(360deg)}38%,53%{border-radius:0;transform:rotate(720deg)}58%,75%{border-radius:50%;transform:rotate(1080deg)}80%,100%{border-radius:20px;transform:rotate(1440deg)}}
+    @keyframes hideTextReady{0%{opacity:0}3%,12%{opacity:1}16%,100%{opacity:0}}
+    @keyframes hideTextGo{0%,76%{opacity:0}80%,100%{opacity:1}}
+  </style>
+</head>
+<body class="rush-mode">
+<div class="bg-pattern"></div>
+<div class="todo-wrapper">
+  <div id="rush-tutorial-app" class="todo-app"></div>
+</div>
+
+<script type="module">
+const RUSH_STEPS = [  
+  {  
+    title: '① Tổng thời gian',  
+    description: 'Đặt <strong>số phút</strong>. Thử với 30 phút!',  
+    targetRef: 'totalTimeInput',  
+    position: 'bottom',  
+    actionType: 'input',  
+    stepDone: false,  
+  },  
+  {  
+    title: '② Thêm việc + ĐK',  
+    description: 'Nhập tiêu đề, đặt độ khó <strong>ĐK (1-10)</strong>, rồi nhấn <strong>Enter</strong> hoặc nhấp <strong>Thêm</strong>.',  
+    targetRef: 'addWrapper',  
+    position: 'bottom',  
+    actionType: 'input',  
+    stepDone: false,  
+  },  
+  {  
+    title: '③ Thời gian phân bổ',  
+    description: 'Mỗi việc sẽ hiện <strong>thời gian phân bổ</strong> riêng.',  
+    targetRef: 'taskList',  
+    position: 'top',  
+    actionType: 'none',  
+    stepDone: false,  
+  },  
+  {  
+    title: '④ Kéo thả sắp xếp',  
+    description: '<strong>Sắp xếp lại</strong> thứ tự mong muốn thực hiện.',  
+    targetRef: 'taskList',  
+    position: 'top',  
+    actionType: 'drag',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑤ Chỉnh sửa việc',  
+    description: '<strong>Nhấp đúp chuột</strong> để sửa tiêu đề hoặc ĐK, rồi <strong>Enter</strong> để lưu.',  
+    targetRef: 'taskList',  
+    position: 'top',  
+    actionType: 'dblclick',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑥ BẮT ĐẦU RUSH',  
+    description: 'Nhấp <strong>BẮT ĐẦU</strong> để chạy sau giờ đếm ngược.',  
+    targetRef: 'sessionControls',  
+    targetSubSelector: 'button:first-child',  
+    position: 'bottom',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑦ Đồng hồ hoạt động',  
+    description: 'Glow sáng báo hiệu <strong>việc đang làm</strong> và đếm ngược.',  
+    targetRef: 'taskList',  
+    position: 'top',  
+    actionType: 'none',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑧ Hoàn thành việc',  
+    description: 'Nhấp <strong>vòng tròn</strong> để báo xong và xem chênh lệch.',  
+    targetRef: 'taskList',  
+    targetSubSelector: '.btn-finish',  
+    position: 'top',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑨ TẠM DỪNG / TIẾP TỤC',  
+    description: 'Dùng nút tương ứng để <strong>dừng/chạy tiếp</strong> thời gian.',  
+    targetRef: 'sessionControls',  
+    targetSubSelector: 'button:first-child',  
+    position: 'bottom',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑩ KẾT THÚC',  
+    description: 'Nhấp <strong>Kết thúc</strong> để dừng quy trình sớm.',  
+    targetRef: 'sessionControls',  
+    targetSubSelector: 'button:nth-child(2)',  
+    position: 'bottom',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑪ Kết quả đánh giá',  
+    description: 'Xem <strong>điểm số và thống kê</strong>, rồi nhấp Đóng.',  
+    targetRef: 'ratingContent',  
+    position: 'bottom',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑫ Xóa công việc',  
+    description: 'Nhấp <strong>thùng rác</strong> để xóa (chỉ mở trước/sau RUSH).',  
+    targetRef: 'taskList',  
+    targetSubSelector: '.btn-delete',  
+    position: 'top',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+  {  
+    title: '⑬ Xóa hết',  
+    description: 'Nhấp <strong>Xóa hết</strong> để làm sạch danh sách.',  
+    targetRef: 'clearAllBtn',  
+    position: 'left',  
+    actionType: 'click',  
+    stepDone: false,  
+  },  
+];  
+
+/* ═══════════════════════════════════════════
+   MOCK CONFIRM
+═══════════════════════════════════════════ */
+function mockConfirm(msg) {
+  return new Promise(r => {
+    const ov = document.createElement('div'); ov.className = 'custom-alert-overlay';
+    const box = document.createElement('div'); box.className = 'custom-alert';
+    box.innerHTML = `<div class="custom-alert-title">Xác nhận</div><div class="custom-alert-content">${msg}</div><div class="custom-alert-buttons"><button class="custom-alert-btn cancel">Hủy</button><button class="custom-alert-btn confirm">Đồng ý</button></div>`;
+    ov.appendChild(box); document.body.appendChild(ov);
+    box.querySelector('.confirm').onclick = () => { document.body.removeChild(ov); r(true); };
+    box.querySelector('.cancel').onclick  = () => { document.body.removeChild(ov); r(false); };
+  });
+}
+
+/* ═══════════════════════════════════════════
+   RUSH TUTORIAL APP
+═══════════════════════════════════════════ */
+const RushTutorialApp = {
+  name: 'RushTutorialApp',
+
+  template: `
+  <div>
+    <div v-for="(p, i) in panelStyles" :key="'p'+i" :style="p" class="tut-panel"></div>
+
+    <div v-if="tutActive && !tutComplete" class="tut-highlight-box" :style="highlightStyle"></div>
+
+    <div v-if="tutActive && !tutComplete" class="tut-arrow" :style="arrowStyle"></div>
+
+    <div v-if="tutActive && !tutComplete" class="tut-card" :style="cardStyle">
+      <div class="tut-card-inner">
+        <div class="tut-progress">Bước {{ tutStep + 1 }} / {{ tutSteps.length }}</div>
+        <h3 class="tut-title">{{ tutSteps[tutStep].title }}</h3>
+        <p class="tut-text" v-html="tutSteps[tutStep].description"></p>
+        
+        <div v-if="tutSteps[tutStep].actionType !== 'none' && !tutSteps[tutStep].stepDone" class="tut-hint">
+          <span class="pulse-dot"></span> Đang chờ thao tác: {{ tutSteps[tutStep].actionType === 'click' ? 'Nhấp vào vùng chỉ định' : 'Kiểm tra vùng highlight' }}
+        </div>
+
+        <div class="tut-actions">
+          <button @click="tutSkip" class="tut-btn-skip">Bỏ qua</button>
+          <div style="flex:1"></div>
+          <button @click="tutPrev" :disabled="tutStep === 0" class="tut-btn-nav">Trước</button>
+          <button @click="tutNext" :disabled="tutSteps[tutStep].actionType !== 'none' && !tutSteps[tutStep].stepDone" class="tut-btn-next">
+            {{ tutStep === tutSteps.length - 1 ? 'Hoàn thành' : 'Tiếp' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="tutComplete" class="tut-panel" style="inset:0;position:fixed;z-index:50000;pointer-events:all"></div>
+    <div v-if="tutComplete" class="tut-complete-card">
+      <div style="font-size:56px;margin-bottom:8px">🚀</div>
+      <h2>Bạn đã sẵn sàng!</h2>
+      <p>Bạn đã hoàn tất hướng dẫn RUSH. Chúc bạn chạy đua với thời gian vui vẻ!</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="tut-btn tut-btn-primary" @click="tutComplete=false;tutActive=false">Trải nghiệm tự do</button>
+        <a href="index-tutorial.html" style="text-decoration:none"><button class="tut-btn" style="background:#d1fae5">← Quay lại Hướng dẫn Todo</button></a>
+      </div>
+    </div>
+    <button class="tut-fab" @click="reopenTutorial" title="Mở lại hướng dẫn">?</button>
+
+    <div v-if="showCountdown" class="countdown-overlay">
+      <div class="demo">
+        <div class="demo__colored-blocks">
+          <div class="demo__colored-blocks-rotater">
+            <div class="demo__colored-block"></div>
+            <div class="demo__colored-block"></div>
+            <div class="demo__colored-block"></div>
+          </div>
+          <div class="demo__colored-blocks-inner"></div>
+          <div class="demo__text">IT'S</div>
+          <div class="demo__text demo__text--go">GO!</div>
+        </div>
+        <div class="demo__inner">
+          <svg class="demo__numbers" viewBox="0 0 100 100">
+            <defs>
+              <path class="demo__num-path-1" d="M40,28 55,22 55,78"/>
+              <path class="demo__num-join-1-2" d="M55,78 55,83 a17,17 0 1,0 34,0 a20,10 0 0,0 -20,-10"/>
+              <path class="demo__num-path-2" d="M69,73 l-35,0 l30,-30 a16,16 0 0,0 -22.6,-22.6 l-7,7"/>
+              <path class="demo__num-join-2-3" d="M28,69 Q25,44 34.4,27.4"/>
+              <path class="demo__num-path-3" d="M30,20 60,20 40,50 a18,15 0 1,1 -12,19"/>
+            </defs>
+            <path class="demo__numbers-path"
+                  d="M-10,20 60,20 40,50 a18,15 0 1,1 -12,19
+                     Q25,44 34.4,27.4
+                     l7,-7 a16,16 0 0,1 22.6,22.6 l-30,30 l35,0 L69,73
+                     a20,10 0 0,1 20,10 a17,17 0 0,1 -34,0 L55,83
+                     l0,-61 L40,28" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showRatingModal" class="rating-modal" @click="closeRatingModal">
+      <div class="rating-content" ref="ratingContent" @click.stop>
+        <h2>Phiên làm việc xong!</h2>
+        <div class="rating-grade" :class="'rating-' + finalRating.toLowerCase()">{{ finalRating }}</div>
+        <p><strong>Giờ thực tế:</strong> {{ formatTime(actualCompletionTime) }}</p>
+        <p><strong>Giờ mục tiêu:</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>
+        <p><strong>Việc hoàn thành:</strong> {{ completedTasksCount }} / {{ tasks.length }}</p>
+        <p style="font-size:13px;color:#888;margin-top:8px">
+          SSS ≤60% · SS ≤80% · S &lt;100% · A ≥100% · F = incomplete
+        </p>
+        <button class="rush-btn rush-btn-primary" @click="closeRatingModal" style="margin-top:12px">Đóng</button>
+      </div>
+    </div>
+
+    <div class="container header">
+      <div class="todo-input">
+        <h1 class="title" style="color:var(--rush-red)">
+          🚀 CHẾ ĐỘ RUSH
+          <span style="font-size:14px;font-weight:500;background:#fca5a5;border-radius:4px;padding:2px 8px;margin-left:8px;vertical-align:middle;color:#111">Hướng dẫn</span>
+        </h1>
+
+        <div class="ttc-input" ref="totalTimeInput">
+          <label><strong>Tổng phút:</strong></label>
+          <input
+            type="number"
+            v-model.number="totalTimeMinutes"
+            :disabled="sessionActive || sessionPaused"
+            min="1"
+            placeholder="60"
+            @input="recalculateAllocatedTimes"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="add-content-wrapper" ref="addWrapper">
+          <input
+            type="text"
+            class="add-content"
+            placeholder="Thêm công việc RUSH..."
+            v-model="newTaskTitle"
+            @keyup.enter="addTask"
+            :disabled="sessionActive || sessionPaused"
+            style="padding-right:200px"
+            autocomplete="off"
+          />
+          <label style="position:absolute;right:130px;top:60%;transform:translateY(-60%);font-weight:bold">
+            ĐK:
+            <input
+              type="number"
+              v-model.number="newTaskHL"
+              min="1" max="10"
+              class="hardness-input"
+              :disabled="sessionActive || sessionPaused"
+              autocomplete="off"
+            />
+          </label>
+          <button
+            class="btn submit-btn"
+            type="button"
+            @click="addTask"
+            :disabled="sessionActive || sessionPaused"
+            style="background:var(--rush-red)"
+          >Thêm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-controls" ref="sessionControls">
+      <button
+        class="rush-btn rush-btn-primary"
+        @click="toggleSession"
+        :disabled="tasks.length === 0 || (tutActive && !tutComplete && tutStep === 9)"
+      >
+        {{ sessionActive ? 'TẠM DỪNG' : (sessionPaused ? 'TIẾP TỤC' : 'BẮT ĐẦU RUSH') }}
+      </button>
+      <button
+        class="rush-btn"
+        @click="endSession"
+        :disabled="(!sessionActive && !sessionPaused) || (tutActive && !tutComplete && (tutStep === 5 || tutStep === 8))"
+      >Kết thúc</button>
+      <button
+        ref="clearAllBtn"
+        class="rush-btn"
+        @click="clearAll"
+        :disabled="tutActive && !tutComplete && (tutStep === 5 || tutStep === 8 || tutStep === 9)"
+        style="border-color:var(--rush-orange);color:var(--rush-orange)"
+      >Xóa hết</button>
+    </div>
+
+    <div class="container main">
+      <div class="todo-list-box">
+        <div class="bar-message" style="border-color:var(--rush-red)">
+          <div class="bar-message-text" style="color:var(--rush-red);font-weight:bold">{{ statusMessage }}</div>
+        </div>
+
+        <ul v-if="!tasks.length" class="empty-tips">
+          <li>🚀 Thêm công việc và độ khó (ĐK) để bắt đầu RUSH!</li>
+          <li>⚡ ĐK cao = Phân bổ nhiều thời gian hơn</li>
+          <li>🎯 Đua với thời gian để đạt điểm cao!</li>
+          <li>⏰ Trữ lượng thời gian dư được cộng dồn</li>
+          <li>✏️ Nhấn đúp chuột để chỉnh sửa, kéo thả để sắp xếp</li>
+        </ul>
+
+        <ul class="todo-list" ref="taskList">
+          <li
+            v-for="(task, index) in tasks"
+            :key="task.id"
+            class="rush-task-item todo-item"
+            :class="{
+              active: currentTaskIndex === index && sessionActive,
+              completed: task.completed,
+              'drag-over': dragOverIndex === index
+            }"
+            draggable="true"
+            :ref="'taskItem-' + task.id"
+            @dragstart="handleDragStart(index, $event)"
+            @dragover="handleDragOver(index, $event)"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop(index, $event)"
+          >
+            <div v-if="editingTask === task.id" class="todo-content">
+              <input
+                v-model="task.title"
+                autocomplete="off"
+                @keyup.enter="saveEdit(task)"
+                @keyup.esc="cancelEdit"
+                class="task-edit-input"
+                ref="editInput"
+              />
+              <label style="margin-left:16px;font-weight:bold">
+                HL:
+                <input
+                  v-model.number="task.hl"
+                  type="number" min="1" max="10"
+                  class="hl-edit-input"
+                  @change="recalculateAllocatedTimes"
+                  autocomplete="off"
+                />
+              </label>
+            </div>
+
+            <div v-else
+              class="todo-content"
+              :class="{completed: task.completed}"
+              @dblclick="startEdit(task)"
+            >
+              <label :style="{'text-decoration': task.completed ? 'line-through' : 'none'}">
+                {{ task.title }} <span style="opacity:.6;font-size:.85em">(HL: {{ task.hl }})</span>
+              </label>
+              <div v-if="task.completed"
+                class="timer-completion completed"
+                :class="{
+                  'timer-early': task.cumulativeTime > 0,
+                  'timer-late':  task.cumulativeTime < 0
+                }"
+                style="display:inline-block;margin-left:12px"
+              >
+                {{ task.cumulativeTime > 0 ? '+' : '-' }}{{ formatTime(Math.abs(task.cumulativeTime)) }}
+              </div>
+            </div>
+
+            <div v-if="!sessionActive && !task.completed && editingTask !== task.id" class="task-allocated-timer">
+              {{ formatTime(task.allocatedTime * 1000) }}
+            </div>
+
+            <div
+              v-if="currentTaskIndex === index && sessionActive"
+              class="timer-display task-timer"
+              :class="{'timer-negative': currentTaskTimeLeft < 0}"
+            >
+              {{ formatTime(currentTaskTimeLeft) }}
+            </div>
+
+            <div class="task-controls">
+              <div
+                class="todo-btn btn-delete"
+                v-if="!sessionActive && !sessionPaused"
+                @click="removeTask(index)"
+                title="Remove task"
+                style="position:static"
+              >
+                <img src="public/img/delete.svg" alt="Delete" draggable="false"/>
+              </div>
+            </div>
+
+            <div
+              class="todo-btn btn-finish"
+              v-if="!task.completed && (sessionActive || sessionPaused)"
+              @click="completeTask(index)"
+            ></div>
+            <div
+              class="todo-btn btn-unfinish"
+              v-if="task.completed && (sessionActive || sessionPaused)"
+              @click="uncompleteTask(index)"
+            >
+              <img src="public/img/complete.svg" alt="Completed" draggable="false"/>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="nav">
+      <span style="margin-right:12px;opacity:.7;font-size:14px">demo@tutorial.local</span>
+      <a href="index-tutorial.html" style="text-decoration:none">
+        <button class="rush-btn" style="margin-top:0;padding:8px 16px;font-size:13px">← Quay lại Hướng dẫn Todo</button>
+      </a>
+    </div>
+  </div>`,
+
+  data() {
+    return {
+      /* session */
+      showCountdown: false,
+      tasks: [],
+      newTaskTitle: '',
+      newTaskHL: 1,
+      totalTimeMinutes: 25,
+      sessionActive: false,
+      sessionPaused: false,
+      sessionStartTime: null,
+      pausedTime: 0,
+      currentTaskIndex: 0,
+      currentTaskStartTime: null,
+      currentTaskTimeLeft: 0,
+      intervalId: null,
+      /* rating */
+      showRatingModal: false,
+      finalRating: '',
+      actualCompletionTime: 0,
+      /* editing / drag */
+      editingTask: null,
+      originalTaskData: null,
+      draggedIndex: null,
+      dragOverIndex: null,
+      /* sound */
+      sound: null,
+      confettiColors: ['#a864fd','#29cdff','#78ff44','#ff718d','#fdff6a'],
+      /* tutorial */
+      tutActive: true,
+      tutStep: 0,
+      tutComplete: false,
+      tutSteps: RUSH_STEPS.map(s => ({ ...s, stepDone: false })),
+      highlightStyle: {},
+      cardStyle: {},
+      arrowStyle: {},
+      panelStyles: [],
+    };
+  },
+
+  computed: {
+    totalTimeSeconds() { return this.totalTimeMinutes * 60; },
+    totalHL()          { return this.tasks.reduce((s, t) => s + t.hl, 0); },
+    completedTasksCount() { return this.tasks.filter(t => t.completed).length; },
+    statusMessage() {
+      if (this.sessionActive) {
+        const cur = this.tasks[this.currentTaskIndex];
+        return cur ? `Đang thực hiện: ${cur.title}` : 'Đã hoàn thành mọi việc!';
+      }
+      if (this.sessionPaused) return 'Phiên RUSH đang tạm dừng - Nhấp TIẾP TỤC';
+      if (!this.tasks.length)  return 'Vui lòng thêm công việc để chạy RUSH';
+      const total = this.tasks.reduce((s, t) => s + t.allocatedTime, 0);
+      return `${this.tasks.length} việc sẵn sàng (${this.formatTime(total * 1000)} phút) – Nhấp BẮT ĐẦU để chạy`;
+    },
+  },
+
+  async mounted() {
+    // Try to load confetti sound (gracefully ignore errors)
+    try { this.sound = new Audio('public/sound/confetti.mp3'); } catch(e) {}
+
+    // Load any tasks imported from index-tutorial
+    try {
+      const data = localStorage.getItem('rush-imported-tasks');
+      if (data) {
+        const imported = JSON.parse(data);
+        if (Array.isArray(imported) && imported.length) {
+          this.tasks = imported;
+          this.recalculateAllocatedTimes();
+          localStorage.removeItem('rush-imported-tasks');
+        }
+      }
+    } catch(e) {}
+
+    // Preload demo tasks if none were imported
+    if (!this.tasks.length) {
+      this.tasks = [
+        { id: 1, title: 'Review project brief', hl: 2, completed: false, allocatedTime: 0, actualTime: 0, startTime: null, deadline: 0, cumulativeTime: 0 },
+        { id: 2, title: 'Write feature spec',   hl: 3, completed: false, allocatedTime: 0, actualTime: 0, startTime: null, deadline: 0, cumulativeTime: 0 },
+        { id: 3, title: 'Implement core logic',  hl: 5, completed: false, allocatedTime: 0, actualTime: 0, startTime: null, deadline: 0, cumulativeTime: 0 },
+        { id: 4, title: 'Write tests',           hl: 2, completed: false, allocatedTime: 0, actualTime: 0, startTime: null, deadline: 0, cumulativeTime: 0 },
+      ];
+      this.recalculateAllocatedTimes();
+    }
+
+    document.addEventListener('mousedown', this.handleClickOutside);
+    this.$nextTick(() => this.computeTutorialLayout());
+    window.addEventListener('resize', this.computeTutorialLayout);
+    window.addEventListener('scroll', this.computeTutorialLayout, { passive: true });
+    window.addEventListener('touchmove', this.computeTutorialLayout, { passive: true });
+    this.$nextTick(() => {
+      const listEl = this.$refs.taskList;
+      if (listEl) listEl.addEventListener('scroll', this.computeTutorialLayout, { passive: true });
+    });
+  },
+
+  beforeDestroy() {
+    document.removeEventListener('mousedown', this.handleClickOutside);
+    this.stopTimer();
+    window.removeEventListener('resize', this.computeTutorialLayout);
+    window.removeEventListener('scroll', this.computeTutorialLayout);
+    window.removeEventListener('touchmove', this.computeTutorialLayout);
+    const listEl = this.$refs.taskList;
+    if (listEl) listEl.removeEventListener('scroll', this.computeTutorialLayout);
+  },
+
+  watch: {
+    tutStep() {  
+      this.tutSteps.forEach(s => {  
+        s.stepDone = false;  
+        s._listenerAttached = false;  
+      });  
+      this.$nextTick(() => this.computeTutorialLayout());  
+    },  
+    tutActive() {   
+      if (this.tutActive) this.$nextTick(() => this.computeTutorialLayout());   
+      else this.panelStyles = [];  
+    },  
+    totalTimeMinutes(val) {  
+      if (val === 30) this._fireTutHook('totalTimeChanged');  
+    },  
+  },
+
+  methods: {
+    /* ── Task management ── */
+    addTask() {  
+      if (!this.newTaskTitle.trim()) return;  
+      const task = {  
+        id: Date.now(),  
+        title: this.newTaskTitle.trim(),  
+        hl: this.newTaskHL,  
+        completed: false,  
+        allocatedTime: 0, actualTime: 0,  
+        startTime: null, deadline: 0, cumulativeTime: 0,  
+      };  
+      this.tasks.push(task);  
+      this.recalculateAllocatedTimes();  
+      this.newTaskTitle = '';  
+      this.newTaskHL = 1;  
+      // ── Hook: step ② ──  
+      this._fireTutHook('addTask');  
+    },  
+    recalculateAllocatedTimes() {
+      const totalHL = this.totalHL;
+      if (!totalHL || !this.tasks.length) return;
+      const timePerHL = this.totalTimeSeconds / totalHL;
+      let remaining = this.totalTimeSeconds;
+      for (let i = 0; i < this.tasks.length - 1; i++) {
+        this.tasks[i].allocatedTime = Math.floor(timePerHL * this.tasks[i].hl);
+        remaining -= this.tasks[i].allocatedTime;
+      }
+      this.tasks[this.tasks.length - 1].allocatedTime = Math.max(0, remaining);
+      let cum = 0;
+      for (let i = 0; i < this.tasks.length; i++) {
+        cum += this.tasks[i].allocatedTime;
+        this.tasks[i].deadline = cum * 1000;
+      }
+    },
+    removeTask(index) {  
+      this.tasks.splice(index, 1);  
+      this.recalculateAllocatedTimes();  
+      if (index <= this.currentTaskIndex && this.currentTaskIndex > 0) this.currentTaskIndex--;  
+      // ── Hook: step ⑫ ──  
+      this._fireTutHook('removeTask');  
+    },  
+    startEdit(task) {  
+      this.editingTask = task.id;  
+      this.originalTaskData = { title: task.title, hl: task.hl };  
+      this.$nextTick(() => {  
+        const inp = this.$refs.editInput;  
+        if (inp) (Array.isArray(inp) ? inp[0] : inp).focus();  
+      });  
+    },  
+    saveEdit(task) {  
+      this.editingTask = null; this.originalTaskData = null;  
+      this.recalculateAllocatedTimes();  
+      // ── Hook: step ⑤ ──  
+      this._fireTutHook('saveEdit');  
+    },  
+    cancelEdit() {
+      if (this.editingTask && this.originalTaskData) {
+        const t = this.tasks.find(x => x.id === this.editingTask);
+        if (t) { t.title = this.originalTaskData.title; t.hl = this.originalTaskData.hl; }
+      }
+      this.editingTask = null; this.originalTaskData = null;
+      this.recalculateAllocatedTimes();
+    },
+    handleClickOutside(e) {
+      if (!this.editingTask) return;
+      const ref = this.$refs['taskItem-' + this.editingTask];
+      const el  = ref && (Array.isArray(ref) ? ref[0]?.$el || ref[0] : ref.$el || ref);
+      if (el && el.contains(e.target)) return;
+      const task = this.tasks.find(t => t.id === this.editingTask);
+      if (task) this.saveEdit(task);
+    },
+
+    /* ── Drag ── */
+    handleDragStart(index, e) {
+      this.draggedIndex = index;
+      e.dataTransfer.setData('text/plain', String(index));
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    handleDragOver(index, e) {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move'; this.dragOverIndex = index;
+    },
+    handleDragLeave() { this.dragOverIndex = null; },
+    handleDrop(index, e) {  
+      e.preventDefault(); this.dragOverIndex = null;  
+      if (this.draggedIndex !== null && this.draggedIndex !== index) {  
+        const moved = this.tasks.splice(this.draggedIndex, 1)[0];  
+        this.tasks.splice(index, 0, moved);  
+        if      (this.currentTaskIndex === this.draggedIndex) this.currentTaskIndex = index;  
+        else if (this.draggedIndex < this.currentTaskIndex && index >= this.currentTaskIndex) this.currentTaskIndex--;  
+        else if (this.draggedIndex > this.currentTaskIndex && index <= this.currentTaskIndex) this.currentTaskIndex++;  
+        // ── Hook: step ④ ──  
+        this._fireTutHook('drag');  
+      }  
+      this.draggedIndex = null;  
+    },  
+
+    /* ── Session lifecycle ── */
+    toggleSession() {
+      if (!this.sessionActive && !this.sessionPaused) this.runCountdownThenStart();
+      else if (this.sessionActive)                    this.pauseSession();
+      else if (this.sessionPaused)                    this.resumeSession();
+    },
+    runCountdownThenStart() {
+      this.showCountdown = true;
+      setTimeout(() => { this.showCountdown = false; this.startSession(); }, 6000);
+    },
+    startSession() {  
+      this.recalculateAllocatedTimes();  
+      this.sessionActive    = true;  
+      this.sessionPaused    = false;  
+      this.sessionStartTime = Date.now();  
+      this.currentTaskIndex = this.findNextIncomplete();  
+      if (this.currentTaskIndex !== -1) { this.startCurrentTask(); this.startTimer(); }  
+      else this.endSession();  
+      // ── Hook: step ⑥ ──  
+      this._fireTutHook('sessionStarted');  
+    },  
+    pauseSession() {  
+      this.sessionActive = false; this.sessionPaused = true;  
+      this.pausedTime += Date.now() - this.sessionStartTime;  
+      this.stopTimer();  
+      // ── Hook: step ⑨ ──  
+      this._fireTutHook('sessionPaused');  
+    },  
+    resumeSession() {
+      this.sessionActive = true; this.sessionPaused = false;
+      this.sessionStartTime = Date.now();
+      this.startTimer();
+    },
+    endSession() {  
+      const wasActive = this.sessionActive;  
+      const wasPaused = this.sessionPaused;  
+      this.sessionActive = false; this.sessionPaused = false;  
+      this.stopTimer();  
+      this.actualCompletionTime = this.pausedTime + (Date.now() - (this.sessionStartTime || Date.now()));  
+      this.calculateFinalRating(wasActive, wasPaused);  
+      this.showRatingModal = true;  
+      this.pausedTime = 0; this.sessionStartTime = null;  
+      this.currentTaskIndex = 0;  
+      // ── Hook: step ⑩ ──  
+      this._fireTutHook('showRating');  
+    },  
+    findNextIncomplete() {
+      for (let i = 0; i < this.tasks.length; i++) if (!this.tasks[i].completed) return i;
+      return -1;
+    },
+    startCurrentTask() {
+      if (this.currentTaskIndex < 0 || this.currentTaskIndex >= this.tasks.length) return;
+      const task = this.tasks[this.currentTaskIndex];
+      task.startTime = Date.now();
+      const elapsed = this.pausedTime + (Date.now() - this.sessionStartTime);
+      this.currentTaskTimeLeft = task.deadline - elapsed;
+    },
+    startTimer() {
+      this.intervalId = setInterval(() => {
+        if (this.currentTaskIndex >= 0 && this.currentTaskIndex < this.tasks.length) {
+          const task    = this.tasks[this.currentTaskIndex];
+          const elapsed = this.pausedTime + (Date.now() - this.sessionStartTime);
+          this.currentTaskTimeLeft = task.deadline - elapsed;
+        }
+      }, 10);
+    },
+    stopTimer() {
+      if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    },
+    completeTask(index) {  
+      if (!this.sessionActive) return;  
+      const task = this.tasks[index];  
+      if (task.completed) return;  
+      task.completed = true;  
+      task.actualTime = task.startTime ? Date.now() - task.startTime : 0;  
+      const elapsed = this.pausedTime + (Date.now() - this.sessionStartTime);  
+      task.cumulativeTime = task.deadline - elapsed;  
+      this.celebrateCompletion();  
+      this.currentTaskIndex = this.findNextIncomplete();  
+      if (this.currentTaskIndex !== -1 && this.sessionActive) this.startCurrentTask();  
+      else this.endSession();  
+      // ── Hook: step ⑧ ──  
+      this._fireTutHook('completeTask');  
+    },  
+    uncompleteTask(index) {
+      const task = this.tasks[index];
+      task.completed = false; task.actualTime = 0; task.startTime = null;
+      if (index < this.currentTaskIndex) {
+        this.currentTaskIndex = index;
+        if (this.sessionActive) this.startCurrentTask();
+      }
+    },
+    calculateFinalRating(wasActive, wasPaused) {
+      const allDone = this.completedTasksCount === this.tasks.length;
+      if (!allDone) { this.finalRating = 'F'; return; }
+      const ratio = this.actualCompletionTime / (this.totalTimeSeconds * 1000);
+      if      (ratio <= 0.6) this.finalRating = 'SSS';
+      else if (ratio <= 0.8) this.finalRating = 'SS';
+      else if (ratio <  1.0) this.finalRating = 'S';
+      else                   this.finalRating = 'A';
+    },
+    clearAll() {  
+      if (this.sessionActive || this.sessionPaused) {  
+        mockConfirm('This will end your current session. Continue?').then(ok => {  
+          if (!ok) return;  
+          this.endSession();  
+          this.tasks = [];  
+        });  
+      } else {  
+        this.tasks = [];  
+      }  
+    },  
+    closeRatingModal() {
+      this.showRatingModal = false;
+      this._fireTutHook('closeRating');
+    },
+
+    /* ── Celebration ── */
+    celebrateCompletion() {
+      try { if (this.sound) { this.sound.currentTime = 0; this.sound.play().catch(() => {}); } } catch(e) {}
+      if (typeof confetti !== 'undefined') {
+        confetti({ particleCount: 350, startVelocity: 88, drift: 0.3, angle: 45,  spread: 70, origin: { x: 0, y: 1 }, colors: this.confettiColors });
+        confetti({ particleCount: 350, startVelocity: 88, drift: 0.3, angle: 135, spread: 70, origin: { x: 1, y: 1 }, colors: this.confettiColors });
+      }
+    },
+
+    /* ── Formatting ── */
+    formatTime(ms) {
+      const total = Math.abs(Math.floor(ms || 0));
+      const hrs  = Math.floor(total / 3600000);
+      const mins = Math.floor((total % 3600000) / 60000);
+      const secs = Math.floor((total % 60000) / 1000);
+      const cs   = Math.floor((total % 1000) / 10);
+      if (hrs > 0) return `${hrs}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}:${String(cs).padStart(2,'0')}`;
+      if (mins > 0) return `${mins}:${String(secs).padStart(2,'0')}:${String(cs).padStart(2,'0')}`;
+      return `${secs}:${String(cs).padStart(2,'0')}`;
+    },
+
+    /* ── Tutorial positioning ── */  
+    _fireTutHook(hookKey) {  
+      if (!this.tutActive || this.tutComplete) return;  
+      const step = this.tutSteps[this.tutStep];  
+      if (step.stepDone) return;  
+
+      // step-index → valid hook keys  
+      const hookMap = {  
+        0:  ['totalTimeChanged'],   // ① total time input  
+        1:  ['addTask'],            // ② add task  
+        3:  ['drag'],               // ④ drag to reorder  
+        4:  ['saveEdit'],           // ⑤ edit task  
+        5:  ['sessionStarted'],     // ⑥ START RUSH (after countdown)  
+        7:  ['completeTask'],       // ⑧ complete task  
+        8:  ['sessionPaused'],      // ⑨ pause  
+        9:  ['showRating'],         // ⑩ end session → rating shown  
+        10: ['closeRating'],        // ⑪ rating modal → close it  
+        11: ['removeTask'],         // ⑫ delete task  
+        12: ['clearAll'],           // ⑬ clear all (handled by listener)  
+      };  
+
+      const validKeys = hookMap[this.tutStep];  
+      if (!validKeys || !validKeys.includes(hookKey)) return;  
+
+      step.stepDone = true;  
+      this.$nextTick(() => setTimeout(() => {  
+        if (this.tutActive && !this.tutComplete && this.tutSteps[this.tutStep].stepDone) {  
+          this.tutNext();  
+        }  
+      }, 400));  
+    },  
+
+    attachStepListener(step, el) {  
+      if (!el || step.actionType === 'none') return;  
+      if (step.actionType === 'input') return; // handled by hooks/watch  
+
+      // dblclick steps complete only via _fireTutHook (saveEdit)  
+      // — never via a raw DOM dblclick, which fires before the save  
+      if (step.actionType === 'dblclick') return;  
+
+      // sessionControls steps (START RUSH, PAUSE, End Session) are all hook-driven  
+      // — skip DOM listener to prevent premature completion or wrong-button-click triggering  
+      if (step.targetRef === 'sessionControls') return;  
+
+      // .btn-finish step is hook-driven via completeTask  
+      // — skip DOM listener (would fire even on a paused session where completeTask returns early)  
+      if (step.targetSubSelector === '.btn-finish') return;  
+
+      // ratingContent step is hook-driven via closeRatingModal  
+      if (step.targetRef === 'ratingContent') return;  
+
+      const target = step.targetSubSelector  
+        ? (el.querySelector(step.targetSubSelector) || el)  
+        : el;  
+
+      if (step._listenerAttached) return;  
+      step._listenerAttached = true;  
+
+      const eventMap = { click: 'click', drag: 'dragstart' };  
+      const evtName = eventMap[step.actionType];  
+      if (!evtName) return;  
+
+      target.addEventListener(evtName, () => {  
+        if (!step.stepDone) {  
+          step.stepDone = true;  
+          this.$nextTick(() => setTimeout(() => {  
+            if (this.tutActive && !this.tutComplete && this.tutSteps[this.tutStep].stepDone) {  
+              this.tutNext();  
+            }  
+          }, 400));  
+        }  
+      }, { once: true });  
+    },  
+    getRefEl(refName) {
+      const r = this.$refs[refName];
+      if (!r) return null;
+      if (r.$el) return r.$el;
+      if (Array.isArray(r)) return r[0]?.$el || r[0];
+      return r;
+    },
+    computeTutorialLayout() {  
+      if (!this.tutActive || this.tutComplete) { this.panelStyles = []; return; }  
+      const step = this.tutSteps[this.tutStep];  
+      const containerEl = this.getRefEl(step.targetRef);  
+
+      if (!containerEl) {  
+        this.highlightStyle = {}; this.arrowStyle = { display: 'none' }; this.panelStyles = [];  
+        this.positionCard(null, step.position); return;  
+      }  
+
+      const targetEl   = step.targetSubSelector  
+        ? (containerEl.querySelector(step.targetSubSelector) || containerEl)  
+        : containerEl;  
+      const r          = targetEl.getBoundingClientRect();  
+      const pad        = 8;  
+
+      this.highlightStyle = {  
+        top:    (r.top    - pad) + 'px',  
+        left:   (r.left   - pad) + 'px',  
+        width:  (r.width  + pad * 2) + 'px',  
+        height: (r.height + pad * 2) + 'px',  
+      };  
+
+      this._computePanels(r, pad);  
+      this._computeArrow(r, pad, step.position);  
+      this.positionCard(r, step.position);  
+
+      if (!step._listenerAttached) {  
+        this.attachStepListener(step, containerEl);  
+      }  
+    },  
+    _computePanels(r, pad) {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const t = r.top - pad, b = r.bottom + pad, l = r.left - pad, ri = r.right + pad, h = r.height + pad * 2;
+      this.panelStyles = [
+        { top: '0', left: '0', width: '100vw', height: Math.max(0, t) + 'px' },
+        { top: b + 'px', left: '0', width: '100vw', height: Math.max(0, vh - b) + 'px' },
+        { top: t + 'px', left: '0', width: Math.max(0, l) + 'px', height: h + 'px' },
+        { top: t + 'px', left: ri + 'px', width: Math.max(0, vw - ri) + 'px', height: h + 'px' }
+      ].map(s => ({ ...s, position: 'fixed', background: 'rgba(0,0,0,0.55)', zIndex: '50000', pointerEvents: 'all' }));
+    },
+    _computeArrow(r, pad, pos) {  
+      const sz = 22, gap = 14;  
+      let style = { position: 'fixed', zIndex: '50003', pointerEvents: 'none', width: '0', height: '0' };  
+      if (pos === 'bottom') {  
+        // card below target → arrow just below target pointing UP (▲), pulses up toward target  
+        Object.assign(style, { borderLeft: `${sz}px solid transparent`, borderRight: `${sz}px solid transparent`, borderBottom: `${sz * 1.4}px solid #f59e0b`, top: (r.bottom + pad + gap) + 'px', left: (r.left + r.width / 2 - sz) + 'px', '--arrow-dx': '0px', '--arrow-dy': `-${gap}px` });  
+      } else if (pos === 'top') {  
+        // card above target → arrow just above target pointing DOWN (▼), pulses down toward target  
+        Object.assign(style, { borderLeft: `${sz}px solid transparent`, borderRight: `${sz}px solid transparent`, borderTop: `${sz * 1.4}px solid #f59e0b`, top: (r.top - pad - sz * 1.4 - gap) + 'px', left: (r.left + r.width / 2 - sz) + 'px', '--arrow-dx': '0px', '--arrow-dy': `${gap}px` });  
+      } else if (pos === 'left') {  
+        // card left of target → arrow just left of target pointing RIGHT (▶), pulses right toward target  
+        Object.assign(style, { borderTop: `${sz}px solid transparent`, borderBottom: `${sz}px solid transparent`, borderLeft: `${sz * 1.4}px solid #f59e0b`, top: (r.top + r.height / 2 - sz) + 'px', left: (r.left - pad - sz * 1.4 - gap) + 'px', '--arrow-dx': `${gap}px`, '--arrow-dy': '0px' });  
+      } else {  
+        // card right of target → arrow just right of target pointing LEFT (◀), pulses left toward target  
+        Object.assign(style, { borderTop: `${sz}px solid transparent`, borderBottom: `${sz}px solid transparent`, borderRight: `${sz * 1.4}px solid #f59e0b`, top: (r.top + r.height / 2 - sz) + 'px', left: (r.right + pad + gap) + 'px', '--arrow-dx': `-${gap}px`, '--arrow-dy': '0px' });  
+      }  
+      this.arrowStyle = style;  
+    },  
+    positionCard(r, pos) {  
+      const cardW  = 370;  
+      const cardEl = this.$el && this.$el.querySelector('.tut-card');  
+      const cardH  = (cardEl && cardEl.offsetHeight > 0) ? cardEl.offsetHeight : 260;  
+      const margin = 16;  
+      const vw     = window.innerWidth;  
+      const vh     = window.innerHeight;  
+      const pad    = 8;  
+
+      const placeForPos = (p, rect) => {  
+        let t, l;  
+        if (!rect)          { t = vh/2 - cardH/2; l = vw/2 - cardW/2; }  
+        else if (p === 'bottom') { t = rect.bottom + margin; l = Math.min(rect.left, vw - cardW - margin); }  
+        else if (p === 'top')    { t = rect.top    - cardH - margin; l = Math.min(rect.left, vw - cardW - margin); }  
+        else if (p === 'left')   { t = rect.top;  l = rect.left - cardW - margin; }  
+        else                     { t = rect.top;  l = rect.right + margin; }  
+        return { t, l };  
+      };  
+
+      const overlaps = (ct, cl, rect) => {  
+        if (!rect) return false;  
+        const hl = rect.left - pad, hr = rect.right  + pad;  
+        const ht = rect.top  - pad, hb = rect.bottom + pad;  
+        return !(cl + cardW < hl || cl > hr || ct + cardH < ht || ct > hb);  
+      };  
+
+      const positions = [pos, 'bottom', 'top', 'left', 'right'];  
+      let top, left, placed = false;  
+
+      for (const p of positions) {  
+        const { t, l } = placeForPos(p, r);  
+        const ct = Math.max(margin, Math.min(t, vh - cardH - margin));  
+        const cl = Math.max(margin, Math.min(l, vw - cardW - margin));  
+        if (!overlaps(ct, cl, r)) {  
+          top = ct; left = cl; placed = true; break;  
+        }  
+      }  
+
+      if (!placed && r) {  
+        const { t } = placeForPos(pos, r);  
+        top  = Math.max(margin, Math.min(t, vh - cardH - margin));  
+        const rightLeft = r.right + pad + margin;  
+        const leftLeft  = r.left  - pad - cardW - margin;  
+        left = (rightLeft + cardW + margin <= vw) ? rightLeft  
+             : (leftLeft  >= margin)              ? leftLeft  
+             : margin;  
+      }  
+
+      this.cardStyle = { top: top + 'px', left: left + 'px' };  
+    },  
+    tutNext() {
+      if (this.tutStep < this.tutSteps.length - 1) this.tutStep++;
+      else { this.tutComplete = true; this.tutActive = false; }
+    },
+    tutPrev()       { if (this.tutStep > 0) this.tutStep--; },
+    tutSkip()       { this.tutActive = false; this.tutComplete = false; this.panelStyles = []; },
+    reopenTutorial(){ this.tutStep = 0; this.tutComplete = false; this.tutActive = true; this.$nextTick(() => this.computeTutorialLayout()); },
+  },
+};
+
+new Vue({ el: '#rush-tutorial-app', render: h => h(RushTutorialApp) });
+</script>
+</body>
+</html>

@@ -1713,10 +1713,13 @@ span.shortcut-name {
   box-shadow: var(--box-shadow);
   width: 90%;
   max-width: 400px;
+  max-height: 90vh;
   padding: 24px;
   position: relative;
   font-family: var(--font);
   animation: popIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  display: flex;
+  flex-direction: column;
 }
 
 .custom-alert-title {
@@ -1730,6 +1733,7 @@ span.shortcut-name {
   font-size: var(--font-size-base);
   line-height: 1.5;
   margin-bottom: 24px;
+  overflow-y: auto;
 }
 
 .custom-alert-buttons {

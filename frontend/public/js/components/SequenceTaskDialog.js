@@ -4,26 +4,26 @@ export default {
     template: `
     <div class="custom-alert-overlay" @keydown="handleKeydown">
       <div class="custom-alert">
-        <div class="custom-alert-title" style="text-align:center">Sequence Task</div>
+        <div class="custom-alert-title" style="text-align:center">{{ $t('seqDialogTitle') }}</div>
         <div class="custom-alert-content" style="text-align:left">
           <div style="margin-bottom:10px">
             <label style="margin-right:16px; cursor:pointer">
               <input type="radio" v-model="position" value="prefix" />
-              Prefix &nbsp;<span style="opacity:.6;font-size:.85em">(x+Task)</span>
+              {{ $t('seqPrefix') }} &nbsp;<span style="opacity:.6;font-size:.85em">{{ $t('seqPrefixHint') }}</span>
             </label>
             <label style="cursor:pointer">
               <input type="radio" v-model="position" value="suffix" />
-              Suffix &nbsp;<span style="opacity:.6;font-size:.85em">(Task+x)</span>
+              {{ $t('seqSuffix') }} &nbsp;<span style="opacity:.6;font-size:.85em">{{ $t('seqSuffixHint') }}</span>
             </label>
           </div>
 
           <div style="margin-bottom:8px">
-            <label style="display:block;margin-bottom:4px;font-weight:600">Task Name</label>
+            <label style="display:block;margin-bottom:4px;font-weight:600">{{ $t('seqTaskName') }}</label>
             <input
               ref="taskNameInput"
               v-model="taskName"
               type="text"
-              placeholder="e.g. Finish part 3."
+              :placeholder="$t('seqTaskNamePlaceholder')"
               style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:14px"
               @input="updatePreview"
             />
@@ -31,7 +31,7 @@ export default {
 
           <div style="display:flex;gap:12px;margin-bottom:8px">
             <div style="flex:1">
-              <label style="display:block;margin-bottom:4px;font-weight:600">From</label>
+              <label style="display:block;margin-bottom:4px;font-weight:600">{{ $t('seqFrom') }}</label>
               <input
                 v-model.number="fromNum"
                 type="number"
@@ -40,7 +40,7 @@ export default {
               />
             </div>
             <div style="flex:1">
-              <label style="display:block;margin-bottom:4px;font-weight:600">To</label>
+              <label style="display:block;margin-bottom:4px;font-weight:600">{{ $t('seqTo') }}</label>
               <input
                 v-model.number="toNum"
                 type="number"
@@ -51,14 +51,14 @@ export default {
           </div>
 
           <div style="margin-bottom:8px">
-            <label style="display:block;margin-bottom:4px;font-weight:600">Preview</label>
+            <label style="display:block;margin-bottom:4px;font-weight:600">{{ $t('seqPreview') }}</label>
             <input
               v-model="previewStart"
               type="text"
               disabled
               style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:14px;background:#f3f3f3;color:#888;cursor:not-allowed"
             />
-            <label style="display:block;margin-bottom:4px;font-weight:600">To</label>
+            <label style="display:block;margin-bottom:4px;font-weight:600">{{ $t('seqTo') }}</label>
             <input
               v-model="previewEnd"
               type="text"
@@ -81,14 +81,14 @@ export default {
             @click="handleCancel"
             :disabled="isCreating"
           >
-            Cancel
+            {{ $t('seqCancel') }}
           </button>
           <button 
             class="custom-alert-btn confirm" 
             @click="handleCreate"
             :disabled="isCreating"
           >
-            {{ isCreating ? 'Creating…' : 'Create' }}
+            {{ isCreating ? $t('seqCreating') : $t('seqCreate') }}
           </button>
         </div>
       </div>
@@ -144,15 +144,15 @@ export default {
 
         validate() {
             if (!this.taskName) {
-                this.errorMessage = '⚠ Task Name must not be empty.';
+                this.errorMessage = this.$t('seqErrEmpty');
                 return false;
             }
             if (isNaN(this.fromNum) || isNaN(this.toNum)) {
-                this.errorMessage = '⚠ From and To must be valid integers.';
+                this.errorMessage = this.$t('seqErrRange');
                 return false;
             }
             if (this.fromNum > this.toNum) {
-                this.errorMessage = '⚠ From must be ≤ To.';
+                this.errorMessage = this.$t('seqErrOrder');
                 return false;
             }
             this.errorMessage = '';
@@ -163,7 +163,7 @@ export default {
             if (!this.validate()) return;
 
             this.isCreating = true;
-            this.errorMessage = `Creating ${this.toNum - this.fromNum + 1} task(s)…`;
+            this.errorMessage = this.$t('seqProgress', this.toNum - this.fromNum + 1);
 
             try {
                 const tasks = [];
@@ -177,7 +177,7 @@ export default {
                 this.$emit('create', tasks);
             } catch (error) {
                 this.isCreating = false;
-                this.errorMessage = '⚠ Error: ' + error.message;
+                this.errorMessage = this.$t('seqErrGeneric', error.message);
             }
         },
 

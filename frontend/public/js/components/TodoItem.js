@@ -61,20 +61,19 @@ export default {
       >
         <img
           src="public/img/complete.svg"
-          alt="Mark as Incomplete"
+          :alt="$t('altMarkIncomplete')"
           class="icon-finish"
           draggable="false"
         />
       </div>
       
-      <!-- Copy button for hidden prompts -->
       <div
         class="todo-btn btn-copy"
         v-if="hasHiddenPrompt && !isEditing"
         @click="copyPromptContent"
-        title="Copy hidden prompt"
+        :title="$t('altCopyHidden')"
       >
-        <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />
+        <img src="public/img/copy.svg" :alt="$t('altCopyPrompt')" draggable="false" />
       </div>
       
       <div
@@ -82,7 +81,7 @@ export default {
         class="todo-btn btn-restore"
         @click="$emit('restore', todo)"
       >
-        <img src="public/img/restore.svg" alt="Restore" draggable="false" />
+        <img src="public/img/restore.svg" :alt="$t('altRestore')" draggable="false" />
       </div>
       
       <div
@@ -97,13 +96,13 @@ export default {
         v-else
         @click="$emit('remove', todo)"
       >
-        <img src="public/img/delete.svg" alt="Delete" draggable="false" />
+        <img src="public/img/delete.svg" :alt="$t('altDelete')" draggable="false" />
       </div>
 
       <div v-if="todo.saveError" class="todo-error-bar">
-        <span class="todo-error-msg">&#9888; {{ todo.saveErrorMsg || 'Save failed' }}</span>
-        <button class="btn-retry-task" @click.stop="$emit('retry', todo)">Retry</button>
-        <button class="btn-discard-task" @click.stop="$emit('remove', todo)">Discard</button>
+        <span class="todo-error-msg">&#9888; {{ todo.saveErrorMsg || $t('saveFailed') }}</span>
+        <button class="btn-retry-task" @click.stop="$emit('retry', todo)">{{ $t('retryBtn') }}</button>
+        <button class="btn-discard-task" @click.stop="$emit('remove', todo)">{{ $t('discardBtn') }}</button>
       </div>
 
       <div class="edit-todo-wrapper" v-if="isEditing">
@@ -118,7 +117,7 @@ export default {
           @mousedown.stop
         />
         <div class="todo-btn btn-edit-submit" @click="handleEditDone">
-          <img src="public/img/submit.svg" alt="Submit" draggable="false" />
+          <img src="public/img/submit.svg" :alt="$t('altSubmit')" draggable="false" />
         </div>
       </div>
     </li>
@@ -136,14 +135,11 @@ export default {
         renderedContent() {
             let content = this.todo.title;
 
-            // Step 1: Extract and hide prompt content
             const promptPattern = /fPrompt\[(.*?)fPromptEnd\]/gs;
             let displayContent = content.replace(promptPattern, '').trim();
 
-            // Step 2: Render mathematics with KaTeX
             if (window.katex) {
                 try {
-                    // Handle display math $$...$$
                     displayContent = displayContent.replace(/\$\$([^$]+)\$\$/g, (match, mathContent) => {
                         try {
                             return katex.renderToString(mathContent.trim(), {
@@ -157,7 +153,6 @@ export default {
                         }
                     });
 
-                    // Handle inline math $...$
                     displayContent = displayContent.replace(/\$([^$]+)\$/g, (match, mathContent) => {
                         try {
                             return katex.renderToString(mathContent.trim(), {
@@ -200,7 +195,7 @@ export default {
 
         handleDragStart(event) {
             this.$emit('drag-start', this.index);
-            event.dataTransfer.setData('text/plain', JSON.stringify(this.todo));
+            event.dataTransfer.setData('text/plain', String(this.index));
             event.dataTransfer.effectAllowed = 'move';
         },
 
@@ -227,7 +222,6 @@ export default {
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(this.hiddenPromptContent);
                 } else {
-                    // Fallback for older browsers
                     const textArea = document.createElement('textarea');
                     textArea.value = this.hiddenPromptContent;
                     textArea.style.position = 'fixed';
@@ -243,7 +237,7 @@ export default {
                 this.showCopyFeedback();
             } catch (error) {
                 console.error('Copy failed:', error);
-                alert('Copy failed. Please select and copy manually.');
+                alert(this.$t('copyFailed'));
             }
         },
 
@@ -251,7 +245,7 @@ export default {
             const copyBtn = this.$el.querySelector('.btn-copy');
             if (copyBtn) {
                 const originalTitle = copyBtn.title;
-                copyBtn.title = 'Copied!';
+                copyBtn.title = this.$t('copied');
                 copyBtn.style.background = '#16a34a';
                 copyBtn.style.borderColor = '#16a34a';
 

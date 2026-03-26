@@ -63,10 +63,20 @@
       </div>
     </div>
 
-    <!-- <script src="public/js/config.js"></script> -->
-     <!-- <script type="module" src="public/js/config.js"></script> -->
     <script type="module">
       import { API_CONFIG } from './public/js/config.js';
+      import { initI18n } from './public/js/i18n/i18n.js';
+
+      await initI18n();
+      const _t = window._t;
+
+      document.title = _t('loginTitle') + ' - Todo List';
+      document.querySelector('h1').textContent = _t('loginTitle');
+      document.getElementById('email').placeholder = _t('emailPlaceholder');
+      document.getElementById('password').placeholder = _t('passwordPlaceholder');
+      document.querySelector('button[type="submit"]').textContent = _t('loginBtn');
+      document.querySelector('.auth-switch').innerHTML = `${_t('noAccount')} <a href="register.html">${_t('registerLink')}</a>`;
+
       document
         .getElementById("loginForm")
         .addEventListener("submit", async (e) => {
@@ -94,10 +104,10 @@
               localStorage.setItem("user_email", email);
               window.location.href = "/";
             } else {
-              errorMsg.textContent = data.message || "Login failed";
+              errorMsg.textContent = data.message || _t('loginFail');
             }
           } catch (error) {
-            errorMsg.textContent = "Network error: " + error.message;
+            errorMsg.textContent = _t('networkError', error.message);
           }
         });
     </script>

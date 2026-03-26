@@ -137,7 +137,7 @@ export class ApiService {
   static async createLongTask(title) {
     return this.safeApiCall(async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200000); // 1200 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 1200000);
 
       try {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LONG_TASKS}`, {

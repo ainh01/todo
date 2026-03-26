@@ -25,23 +25,18 @@ $breakpoints: ('xs': 'only screen and  (max-width: 350px)',
     --padding: 20px 24px;
     --btn-padding: 12px 24px;
     --btn-small-padding: 10px 20px;
-    //font
     --font:'DM Sans',"PingFang SC", "Lantinghei SC", "Microsoft YaHei", "HanHei SC", "Helvetica Neue", "Open Sans", Arial, "Hiragino Sans GB", STHeiti, "WenQuanYi Micro Hei", SimSun, sans-serif, HYWenHei-GEW !important;
     --font-color: #33322E;
     --font-size-base: 16px;
     --placeholder: rgba(51, 50, 46, 0.535);
     --font-color-complete: rgba(51, 50, 46, 0.535);
-    //bg color
     --bg-normal: #F9F3E5;
-    // --bg-normal:#fffbe7;
     --bg-submit: #ffd6e9;
     --bg-completed: #D0F4F0;
     --bg-discard: #FFF0EE;
     --bg-deleted: #ddd;
-    // --bg-edit:#e8fde6;
     --bg-edit: #fbeef3;
 
-    //dark color
     --normal: #f5d99e;
     --completed: #8CD4CB;
     --deleted: #F6A89E;
@@ -63,13 +58,10 @@ $breakpoints: ('xs': 'only screen and  (max-width: 350px)',
     transition: all 0.35s;
 }
 
-//basic css
 html {
     scrollbar-width: none;
-    /* Firefox */
     -ms-overflow-style: none;
     font-family: var(--font);
-    /* IE 10+ */
     ::-webkit-scrollbar {
         display: none;
 
@@ -89,31 +81,25 @@ html {
     color: var(--placeholder);
     font-weight: 400;
 }
-/* Firefox 4-18 */
 :-moz-placeholder {
     color: var(--placeholder);
     font-weight: 400;
 }
-/* Firefox 19-50 */
 ::-moz-placeholder {
     color: var(--placeholder);
     font-weight: 400;
 }
 
-/* - Internet Explorer 10
-   - Internet Explorer Mobile 10-11 */
 :-ms-input-placeholder {
     color: var(--placeholder) !important;
     font-weight: 400 !important;
 }
 
-/* Edge (also supports ::-webkit-input-placeholder) */
 ::-ms-input-placeholder {
     color: var(--placeholder);
     font-weight: 400;
 }
 
-/* CSS Working Draft */
 ::placeholder {
     color: var(--placeholder);
     font-weight: 400;
@@ -189,7 +175,6 @@ h1 {
     @include respond-to('md') {
         margin:0 auto 16px;
     }
-}
 .main{
     display: flex;
     justify-content: space-between;
@@ -314,20 +299,7 @@ h1 {
 
 // .drag-enter{
 //     opacity: 0;
-//     transform: translateY(-18px);
-// }
-
-// .drag-center-to{
-//     opacity: 1;
-// }
-
-
-.drag-enter-active {
-    opacity: 0;
-    transition: all 0.5s ease;
-}
-
-.drag-enter-to {
+}.drag-enter-to {
     opacity: 1;
     transform: translateY(0);
     transition: all 0.5s;

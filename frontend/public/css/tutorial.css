@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════  
+   SHARED TUTORIAL OVERLAY STYLES  
+   Used by index-tutorial.html and rush-tutorial.html  
+═══════════════════════════════════════════════════════ */  
+
+/* ── 4-panel click-blocking overlay ── */  
+.tut-panel {  
+  position: fixed;  
+  background: rgba(0, 0, 0, 0.55);  
+  z-index: 50000;  
+  pointer-events: all;   /* absorbs all clicks outside the cutout */  
+}  
+
+/* ── Highlight ring around the target ── */  
+.tut-highlight-box {  
+  position: fixed;  
+  box-shadow: 0 0 0 4px #f59e0b, 0 0 0 8px rgba(245, 158, 11, 0.35);  
+  border-radius: 8px;  
+  z-index: 50001;  
+  pointer-events: none;  
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;  
+}  
+
+/* ── Pulsing directional arrow ── */  
+.tut-arrow {  
+  position: fixed;  
+  z-index: 50003;  
+  width: 0;  
+  height: 0;  
+  pointer-events: none;  
+  animation: tut-arrow-pulse 0.9s ease-in-out infinite alternate;  
+  /* filter gives the large triangle a soft glow */  
+  filter: drop-shadow(0 0 4px rgba(245,158,11,0.7));  
+}  
+
+@keyframes tut-arrow-pulse {  
+  from { transform: translate(0, 0); }  
+  to   { transform: translate(var(--arrow-dx, 0px), var(--arrow-dy, 0px)); }  
+  /* travel distance is now driven by ±14 px values set inline by JS */  
+}  
+
+/* ── Tutorial card ── */  
+.tut-card {  
+  position: fixed;  
+  z-index: 50002;  
+  background: #fff;  
+  border: 2px solid #33322e;  
+  border-radius: 12px;  
+  box-shadow: 4px 4px 0 #33322e;  
+  padding: 20px 24px;  
+  max-width: 360px;  
+  width: 92vw;  
+  pointer-events: all;   /* card stays clickable above panels */  
+}  
+.tut-card h3        { margin: 0 0 8px; font-size: 18px; font-weight: 800; }  
+.tut-card p         { margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: #444; }  
+.tut-card .tut-counter { font-size: 12px; color: #888; margin-bottom: 8px; }  
+.tut-card .tut-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }  
+
+/* ── Helper text shown when action is required ── */  
+.tut-action-hint {  
+  font-size: 12px;  
+  color: #b45309;  
+  background: #fef3c7;  
+  border: 1px solid #fbbf24;  
+  border-radius: 6px;  
+  padding: 5px 10px;  
+  margin-top: 6px;  
+  display: flex;  
+  align-items: center;  
+  gap: 5px;  
+}  
+
+/* ── Nav buttons in the card ── */  
+.tut-btn {  
+  padding: 8px 16px;  
+  border: 2px solid #33322e;  
+  border-radius: 8px;  
+  cursor: pointer;  
+  font-weight: 600;  
+  font-size: 13px;  
+  background: #fff;  
+  transition: all 0.2s;  
+}  
+.tut-btn:hover:not(:disabled) {  
+  box-shadow: 2px 2px 0 #33322e;  
+  transform: translate(-1px, -1px);  
+}  
+.tut-btn:disabled {  
+  opacity: 0.4;  
+  cursor: not-allowed;  
+  transform: none !important;  
+  box-shadow: none !important;  
+}  
+.tut-btn-primary { background: #8CD4CB; }  
+.tut-btn-skip    { background: #FFF0EE; margin-left: auto; }  
+
+/* ── Modern Card UI (index/rush sync) ── */
+.tut-card-inner {
+  display: flex;
+  flex-direction: column;
+}
+.tut-progress {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.tut-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 8px;
+  color: #111827;
+}
+.tut-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  margin: 0 0 16px;
+}
+.tut-text strong {
+  color: #111827;
+  background: #f3f4f6;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.tut-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  animation: slideIn 0.3s ease-out;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(245, 158, 11, 0.4);
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+.tut-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.tut-btn-nav, .tut-btn-next, .tut-btn-skip {
+  padding: 8px 16px;
+  border: 2px solid #111827;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tut-btn-nav { background: #fff; color: #111827; }
+.tut-btn-next { background: #f59e0b; color: #fff; border-color: #92400e; }
+.tut-btn-skip { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; margin-left: 0; }
+
+.tut-btn-nav:hover:not(:disabled), .tut-btn-next:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0 #111827;
+}
+.tut-btn-next:disabled {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ── Completion card ── */
+.tut-complete-card {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50002;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 8px 8px 0 #33322e;
+  border: 3px solid #33322e;
+  max-width: 440px;
+  width: 90%;
+}
+.tut-complete-card h2 { margin: 16px 0 8px; font-weight: 800; }
+.tut-complete-card p { color: #4b5563; margin-bottom: 24px; }
+
+/* ── Reopen FAB ── */
+.tut-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 24px;
+  background: #f59e0b;
+  color: white;
+  border: 3px solid #33322e;
+  font-weight: 900;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 4000;
+  box-shadow: 4px 4px 0 #33322e;
+  transition: all 0.2s;
+}
+.tut-fab:hover { transform: scale(1.1); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

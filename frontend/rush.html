@@ -218,6 +218,7 @@
         box-shadow: 0 0 120px rgba(220, 38, 38, 0.83);
         position: relative;
         z-index: 999;
+        background: var(--rush-red);
       }
 
       .rush-task-item.drag-over {
@@ -229,9 +230,12 @@
       }
 
       .task-timer {
-        position: absolute;
-        top: 16px;
-        right: 96px;
+        margin: 6px 0px 6px 55px;
+        width: fit-content;
+      }
+
+      .rush-task-item.active .btn-finish {
+        top: 10px;
       }
 
       .task-allocated-timer {
@@ -311,6 +315,8 @@
         text-decoration: none !important;
         opacity: 0.7;
       }
+
+      
 
       .completed .timer-completion {
         text-decoration: none !important;
@@ -573,8 +579,11 @@
       import { ApiService } from "./public/js/modules/apiService.js";
       import { DialogUtils } from "./public/js/modules/dialogUtils.js";
       import { authGuard } from "./public/js/modules/authGuard.js";
+      import { initI18n } from "./public/js/i18n/i18n.js";
 
       authGuard();
+      await initI18n();
+      document.title = window._t('rushTitle');
 
       const RushApp = {
         name: "RushApp",
@@ -590,8 +599,8 @@
                     <div class="demo__colored-block"></div>  
                   </div>  
                   <div class="demo__colored-blocks-inner"></div>  
-                  <div class="demo__text">IT'S</div>  
-                  <div class="demo__text demo__text--go">GO!</div>  
+                    <div class="demo__text">{{ $t('rushCountdownIts') }}</div>  
+                    <div class="demo__text demo__text--go">{{ $t('rushCountdownGo') }}</div>  
                 </div>  
                 <div class="demo__inner">  
                   <svg class="demo__numbers" viewBox="0 0 100 100">  
@@ -616,11 +625,11 @@
             <div class="container header">  
               <div class="todo-input">  
                 <h1 class="title" style="color: var(--rush-red);">  
-                  🚀 RUSH MODE  
+                  {{ $t('rushTitle') }}  
                 </h1>  
                 
                 <div class="ttc-input">  
-                  <label><strong>Total Time (minutes):</strong></label>  
+                  <label><strong>{{ $t('rushTotalTimeLabel') }}</strong></label>  
                   <input   
                     type="number"   
                     v-model.number="totalTimeMinutes"  
@@ -636,7 +645,7 @@
                   <input  
                     type="text"  
                     class="add-content"  
-                    placeholder="Add a rush task..."  
+                    :placeholder="$t('rushAddPlaceholder')"  
                     v-model="newTaskTitle"  
                     @keyup.enter="addTask"  
                     :disabled="sessionActive"  
@@ -645,7 +654,7 @@
                   />  
                   
                   <label style="position: absolute; right: 130px; top: 60%; transform: translateY(-60%); font-weight: bold;">  
-                    HL:  
+                    {{ $t('rushHlLabel') }}  
                     <input  
                       type="number"  
                       v-model.number="newTaskHL"  
@@ -664,7 +673,7 @@
                     :disabled="sessionActive"  
                     style="background: var(--rush-red);"  
                   >  
-                    Add  
+                    {{ $t('rushAddBtn') }}  
                   </button>  
                 </div>  
               </div>  
@@ -676,7 +685,7 @@
                 @click="toggleSession"  
                 :disabled="tasks.length === 0"  
               >  
-                {{ sessionActive ? 'PAUSE' : (sessionPaused ? 'RESUME' : 'START RUSH') }}  
+                {{ sessionActive ? $t('rushPause') : (sessionPaused ? $t('rushResume') : $t('rushStart')) }}  
               </button>  
               
               <button   
@@ -684,7 +693,7 @@
                 @click="endSession"  
                 :disabled="!sessionActive && !sessionPaused"  
               >  
-                End Session  
+                {{ $t('rushEnd') }}  
               </button>  
               
               <button   
@@ -692,7 +701,7 @@
                 @click="clearAll"  
                 style="border-color: var(--rush-orange); color: var(--rush-orange);"  
               >  
-                Clear All  
+                {{ $t('rushClearAll') }}  
               </button>  
             </div>  
 
@@ -705,11 +714,11 @@
                 </div>  
 
                 <ul v-if="!tasks.length" class="empty-tips">  
-                  <li>🚀 Add tasks with difficulty levels (HL) to start your RUSH session!</li>  
-                  <li>⚡ Higher HL = More time allocated</li>  
-                  <li>🎯 Beat the clock for better ratings!</li>  
-                  <li>⏰ Time rolls over when you finish early</li>  
-                  <li>✏️ Double-click task titles to edit, drag to reorder</li>  
+                  <li>{{ $t('rushEmptyTip1') }}</li>  
+                  <li>{{ $t('rushEmptyTip2') }}</li>  
+                  <li>{{ $t('rushEmptyTip3') }}</li>  
+                  <li>{{ $t('rushEmptyTip4') }}</li>  
+                  <li>{{ $t('rushEmptyTip5') }}</li>  
                 </ul>  
 
                 <ul class="todo-list">  
@@ -729,6 +738,14 @@
                     @dragleave="handleDragLeave"  
                     @drop="handleDrop(index, $event)"  
                   >  
+                    <div   
+                      v-if="currentTaskIndex === index && sessionActive"  
+                      class="timer-display task-timer"  
+                      :class="{ 'timer-negative': currentTaskTimeLeft < 0 }"  
+                    >  
+                      {{ formatTime(currentTaskTimeLeft) }}  
+                    </div>  
+
                     <div
                       v-if="editingTask === task.id"
                       class="todo-content"
@@ -742,7 +759,7 @@
                         ref="editInput"  
                       />  
                       <label style="margin-left: 16px; font-weight: bold;">  
-                        HL:  
+                        {{ $t('rushHlLabel') }}  
                         <input  
                           v-model.number="task.hl"  
                           type="number"  
@@ -784,26 +801,20 @@
                       {{ formatTime(task.allocatedTime * 1000) }}  
                     </div>  
                     
-                    <div   
-                      v-if="currentTaskIndex === index && sessionActive"  
-                      class="timer-display task-timer"  
-                      :class="{ 'timer-negative': currentTaskTimeLeft < 0 }"  
-                    >  
-                      {{ formatTime(currentTaskTimeLeft) }}  
-                    </div>  
+
 
                     <div  
                       class="todo-btn btn-copy"  
                       v-if="hasHiddenPrompt(task) && editingTask !== task.id && (sessionActive || sessionPaused)"  
                       @click="copyPromptContent(task, $event)"  
-                      title="Copy hidden prompt"  
+                      :title="$t('altCopyHidden')"  
                     >  
-                      <img src="public/img/copy.svg" alt="Copy Prompt" draggable="false" />  
+                      <img src="public/img/copy.svg" :alt="$t('altCopyPrompt')" draggable="false" />  
                     </div>  
 
                     <div class="task-controls">   
-                      <div class="todo-btn btn-delete" style="position:sticky"  title="Remove task" @click="removeTask(index)" v-if="!sessionActive && !sessionPaused" >   
-                      <img src="public/img/delete.svg" alt="Delete" draggable="false">  
+                      <div class="todo-btn btn-delete" style="position:sticky"  :title="$t('altDeleteRush')" @click="removeTask(index)" v-if="!sessionActive && !sessionPaused" >   
+                      <img src="public/img/delete.svg" :alt="$t('altDeleteRush')" draggable="false">  
                       </div>   
                     </div>  
                     
@@ -818,7 +829,7 @@
                       v-if="task.completed && (sessionActive || sessionPaused)"  
                       @click="uncompleteTask(index)"  
                     >  
-                      <img src="public/img/complete.svg" alt="Completed" />  
+                      <img src="public/img/complete.svg" :alt="$t('altCompletedRush')" />  
                     </div>  
                   </li>  
                 </ul>  
@@ -827,15 +838,15 @@
 
             <div v-if="showRatingModal" class="rating-modal" @click="closeRatingModal">  
               <div class="rating-content" @click.stop>  
-                <h2>Session Complete!</h2>  
+                <h2>{{ $t('rushSessionComplete') }}</h2>  
                 <div class="rating-grade" :class="'rating-' + finalRating.toLowerCase()">  
                   {{ finalRating }}  
                 </div>  
-                <p><strong>Actual Time:</strong> {{ formatTime(actualCompletionTime) }}</p>  
-                <p><strong>Target Time:</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>  
-                <p><strong>Tasks Completed:</strong> {{ completedTasksCount }} / {{ totalTasksCount }}</p>  
+                <p><strong>{{ $t('rushActualTime') }}</strong> {{ formatTime(actualCompletionTime) }}</p>  
+                <p><strong>{{ $t('rushTargetTime') }}</strong> {{ formatTime(totalTimeSeconds * 1000) }}</p>  
+                <p><strong>{{ $t('rushTasksCompleted') }}</strong> {{ completedTasksCount }} / {{ totalTasksCount }}</p>  
                 <button class="rush-btn rush-btn-primary" @click="closeRatingModal">  
-                  Close  
+                  {{ $t('rushClose') }}  
                 </button>  
               </div>  
             </div>  
@@ -843,7 +854,7 @@
             <div class="nav">  
               <span>{{ userEmail }}</span>  
               <button class="rush-btn" @click="goBack" style="margin-left: 12px;">  
-                ← Back to Todo  
+                {{ $t('rushBackToTodo') }}  
               </button>  
             </div>  
           </div>  
@@ -925,18 +936,18 @@
             if (this.sessionActive) {
               const current = this.tasks[this.currentTaskIndex];
               return current
-                ? `Working on: ${current.title}`
-                : "All tasks completed!";
+                ? this.$t('rushWorking', current.title)
+                : this.$t('rushAllDone');
             } else if (this.sessionPaused) {
-              return "Session paused - Click RESUME to continue";
+              return this.$t('rushPaused');
             } else if (this.tasks.length === 0) {
-              return "Add tasks to start your RUSH session";
+              return this.$t('rushNoTasks');
             } else {
               const totalAllocated = this.tasks.reduce(
                 (sum, t) => sum + t.allocatedTime,
                 0,
               );
-              return `${this.tasks.length} tasks ready (${this.formatTime(totalAllocated * 1000)} total) - Click START RUSH to begin`;
+              return this.$t('rushReadyStatus', this.tasks.length, this.formatTime(totalAllocated * 1000));
             }
           },
 
@@ -1110,7 +1121,7 @@
                 if (Array.isArray(importedTasks) && importedTasks.length > 0) {
                   this.tasks = importedTasks;
                   this.recalculateAllocatedTimes();
-                  this.importSuccessMessage = `Successfully imported ${importedTasks.length} task(s) from your todo list!`;
+                  this.importSuccessMessage = this.$t('rushImportSuccess', importedTasks.length);
 
                   localStorage.removeItem("rush-imported-tasks");
 
@@ -1166,7 +1177,7 @@
             const copyBtn = event && event.currentTarget;
             if (copyBtn) {
               const originalTitle = copyBtn.title;
-              copyBtn.title = "Copied!";
+              copyBtn.title = this.$t('copied');
               copyBtn.style.background = "#16a34a";
               copyBtn.style.borderColor = "#16a34a";
               setTimeout(() => {
@@ -1181,7 +1192,7 @@
             const displayTitle = this.parseHiddenPrompts(
               this.renderMath(task.title),
             );
-            return `${displayTitle} (HL: ${task.hl})`;
+            return `${displayTitle} (${this.$t('rushHlLabel')} ${task.hl})`;
           },
 
           parseHiddenPrompts(content) {
@@ -1428,7 +1439,7 @@
           clearAll() {
             if (this.sessionActive || this.sessionPaused) {
               DialogUtils.confirm(
-                "This will end your current session. Continue?",
+                this.$t('rushEndConfirm'),
               ).then((confirmed) => {
                 if (confirmed) {
                   this.endSession();

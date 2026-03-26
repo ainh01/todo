@@ -7,29 +7,6 @@ import TodoItem from './TodoItem.js';
 import SidebarActions from './SidebarActions.js';
 import SequenceTaskDialog from './SequenceTaskDialog.js';
 
-const LONG_TASK_PHRASES = [
-    'Breaking down your task into manageable steps...',
-    'Analyzing your task for the best approach...',
-    'Crunching the details, hang tight...',
-    'Turning your big idea into small wins...',
-    'Almost there, organizing subtasks...',
-    'Working some magic behind the scenes...',
-    'Slicing and dicing your task...',
-    'Building your personalized task plan...',
-    'Thinking hard so you don\'t have to...',
-    'Mapping out the perfect game plan...',
-    'Cooking up a fresh batch of subtasks...',
-    'Putting the pieces together for you...',
-    'Running at full speed, stay with me...',
-    'Diving deep into your request...',
-    'Generating smart subtasks just for you...',
-    'Spinning up the task engine...',
-    'Your productivity boost is loading...',
-    'Decomposing complexity into simplicity...',
-    'Crafting a clear path forward...',
-    'Wrapping up the heavy lifting...'
-];
-
 export default {
     name: 'TodoApp',
     components: {
@@ -68,7 +45,7 @@ export default {
             <input
               type="text"
               class="add-content"
-              placeholder="Add a to-do item... (Prefix with 'VIP' for task decomposition)"
+                            :placeholder="$t('addPlaceholder')"
               v-model="newTodoTitle"
               @keyup.enter="addTodo"
               :class="{empty: emptyChecked}"
@@ -82,7 +59,7 @@ export default {
 
             <transition name="tips">
               <div class="tips" v-if="emptyChecked" style="color: red">
-                💡Please enter content!
+                                {{ $t('pleaseEnterContent') }}
               </div>
             </transition>
             <button
@@ -91,7 +68,7 @@ export default {
               @click="addTodo"
               :disabled="isProcessingLongTask"
             >
-              {{ isProcessingLongTask ? 'Processing...' : 'Add' }}
+                            {{ isProcessingLongTask ? $t('processing') : $t('addBtn') }}
             </button>
           </div>
         </div>
@@ -103,7 +80,7 @@ export default {
             <input
               type="button"
               class="btn btn-label btn-allFinish"
-              value="Mark All Done"
+                            :value="$t('markAllDone')"
               @click="markAllAsCompleted"
               v-if="todos.length || recycleBin.length"
             />
@@ -124,21 +101,21 @@ export default {
                   @keyup.esc="cancelSloganEdit"
                 />
                 <div class="todo-btn btn-edit-submit slogan-btn" @click="saveSlogan">
-                  <img src="public/img/delete.svg" alt="Finish" />
+                                    <img src="public/img/delete.svg" :alt="$t('altSubmit')" />
                 </div>
               </div>
             </div>
           </div>
 
           <ul v-if="!todos.length && showEmptyTips" class="empty-tips">
-            <li>Add Your First To-Do Item! 📝</li>
-            <li>Usage Tips 💡:</li>
-            <li>✔️ Press Enter to submit actions.</li>
-            <li>✔️ Drag to reorder your to-dos (PC only)</li>
-            <li>✔️ Double-click to edit slogan and tasks.</li>
-            <li>✔️ Access quick actions in the right sidebar.</li>
-            <li>🔒 Your data is stored in the cloud.</li>
-            <li>📝 Supports data download and import.</li>
+                        <li>{{ $t('emptyTip1') }}</li>
+                        <li>{{ $t('emptyTip2') }}</li>
+                        <li>{{ $t('emptyTip3') }}</li>
+                        <li>{{ $t('emptyTip4') }}</li>
+                        <li>{{ $t('emptyTip5') }}</li>
+                        <li>{{ $t('emptyTip6') }}</li>
+                        <li>{{ $t('emptyTip7') }}</li>
+                        <li>{{ $t('emptyTip8') }}</li>
           </ul>
 
           <transition-group
@@ -176,8 +153,8 @@ export default {
 
           <div class="bar-message bar-bottom">
             <div class="bar-message-text">
-              <span v-if="leftTodosCount">{{ leftTodosCount }} items remaining</span>
-              <span v-else-if="completedTodosCount">All completed, good job!</span>
+                            <span v-if="leftTodosCount">{{ leftTodosCount }} {{ $t('itemsRemaining') }}</span>
+                            <span v-else-if="completedTodosCount">{{ $t('allCompleted') }}</span>
             </div>
           </div>
         </div>
@@ -207,14 +184,14 @@ export default {
       <div class="nav">
         <span>{{ userEmail }}</span>
         <div class="github">
-          <a href="http://anhhoctap.surge.sh/" target="_blank" class="social-link" draggable="false">
+          <a href="https://github.com/ainh01/todo" target="_blank" class="social-link" draggable="false">
             <img src="public/img/social/github.svg" class="ic-social" alt="" draggable="false" />
           </a>
         </div>
                 <div class="about">
           <div class="info">
             <div class="info-ico" @click="togglePop" :style="{ fontWeight: popShow ? 'normal' : 'bold' }">
-              About
+                            {{ $t('about') }}
             </div>
             <div class="popup animated popIn" v-if="!popShow">
               <div class="author">
@@ -232,7 +209,9 @@ export default {
                   <img src="public/img/social/mail.svg" class="ic-social" alt="" />
                 </a>
               </div>
+              <a href="http://anhhoctap.surge.sh/" target="_blank" class="inspiration">OCR↗</a>
               <a href="https://www.facebook.com/Binh.MM.mm" target="_blank" class="inspiration">🔖Facebook↗</a>
+              <a href="index-tutorial.html" target="_blank" class="inspiration">⭐Hướng dẫn↗</a>
             </div>
           </div>
         </div>
@@ -242,7 +221,7 @@ export default {
                         style="background-color: rgb(255, 112, 191); border-radius: 3px; color: white; margin-right: 8px;"
                         @click="navigateToRush"
                     >
-                        RUSH mode
+                        {{ $t('rushMode') }}
                     </button>
                 </div>
                 <div class="user-info">
@@ -251,7 +230,7 @@ export default {
             style="background-color: rgb(250, 233, 254); border-radius: 3px"
             @click="logout"
           >
-            Logout
+                        {{ $t('logout') }}
           </button>
         </div>
       </div>
@@ -264,13 +243,13 @@ export default {
 
       <div class="custom-alert-overlay" v-if="showSpaceDialog">
         <div class="custom-alert">
-          <div class="custom-alert-title">Change Space</div>
+                    <div class="custom-alert-title">{{ $t('spaceDialogTitle') }}</div>
           <div class="custom-alert-content">
                         <div v-for="space in spaceList" :key="space.key" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
                             <label style="cursor:pointer; flex:1;">
                                 <input type="radio" :value="space.key" v-model="selectedSpaceKey" />
                                 {{ space.key }}
-                                <span style="opacity:.6; font-size:.85em">({{ space.taskCount }} tasks)</span>
+                                                                <span style="opacity:.6; font-size:.85em">({{ $t('taskCount', space.taskCount) }})</span>
                             </label>
                             <button
                                 type="button"
@@ -279,34 +258,34 @@ export default {
                                 @click="deleteSetKey(space.key)"
                                 :disabled="isChangingSpace || !!deletingSpaceKey || spaceList.length <= 1"
                             >
-                                {{ deletingSpaceKey === space.key ? 'Deleting...' : 'Delete' }}
+                                                                {{ deletingSpaceKey === space.key ? $t('spaceDeleting') : $t('spaceDelete') }}
                             </button>
             </div>
-                        <div v-if="spaceList.length === 1" style="opacity:.6; font-size:.85em; margin-bottom:8px;">At least one set key is required.</div>
+                                                <div v-if="spaceList.length === 1" style="opacity:.6; font-size:.85em; margin-bottom:8px;">{{ $t('spaceAtLeastOne') }}</div>
             <div style="margin-bottom:8px">
               <label style="cursor:pointer">
                 <input type="radio" value="__new__" v-model="selectedSpaceKey" />
-                Create new...
+                                {{ $t('spaceNewLabel') }}
               </label>
               <input
                 v-if="selectedSpaceKey === '__new__'"
                 type="text"
                 v-model="newSpaceName"
-                placeholder="New space name"
+                                :placeholder="$t('spaceNewPlaceholder')"
                 style="margin-top:4px; width:100%; padding:4px 6px; box-sizing:border-box;"
                 @keyup.enter="confirmChangeSpace"
               />
             </div>
-            <div v-if="!spaceList.length" style="opacity:.6">Loading sets...</div>
+                        <div v-if="!spaceList.length" style="opacity:.6">{{ $t('spaceLoading') }}</div>
           </div>
           <div class="custom-alert-buttons">
             <button class="custom-alert-btn cancel"
               @click="showSpaceDialog = false"
-              :disabled="isChangingSpace">Cancel</button>
+                            :disabled="isChangingSpace">{{ $t('spaceCancel') }}</button>
             <button class="custom-alert-btn confirm"
               @click="confirmChangeSpace"
               :disabled="isChangingSpace || !selectedSpaceKey || (selectedSpaceKey === '__new__' && !newSpaceName.trim())">
-              {{ isChangingSpace ? 'Changing...' : 'Change' }}
+                            {{ isChangingSpace ? $t('spaceChanging') : $t('spaceChange') }}
             </button>
           </div>
         </div>
@@ -327,7 +306,7 @@ export default {
             draggedItem: null,
             delayTime: '1',
             isShow: false,
-            shortCut: 'OPEN✨',
+            shortCut: '',
             popShow: true,
             slogan: TodoStorage.getSlogan(),
             isEditing: false,
@@ -350,12 +329,16 @@ export default {
             currentKey: '',
             newSpaceName: '',
             deletingSpaceKey: '',
+            beforeUnloadHandler: null,
         };
     },
 
     async created() {
+        this.shortCut = this.$t('sidebarOpen');
+        if (!TodoStorage.getSlogan()) {
+            this.slogan = this.$t('defaultSlogan');
+        }
         await this.loadTodos();
-        this.setupLanguage();
         try {
             const res = await ApiService.getSets();
             const sets = res.data || [];
@@ -417,10 +400,6 @@ export default {
     },
 
     methods: {
-        setupLanguage() {
-            localStorage.setItem('uiineed-todos-lang', 'en');
-        },
-
         async loadTodos() {
             this.isLoading = true;
             try {
@@ -431,7 +410,7 @@ export default {
                     console.warn('Failed to load todos (network error), will retry silently');
                     this.silentRefresh();
                 } else {
-                    await DialogUtils.alert('Failed to load todos: ' + error.message, 'Error');
+                    await DialogUtils.alert(this.$t('loadFail', error.message), this.$t('errorTitle'));
                 }
             } finally {
                 this.isLoading = false;
@@ -480,9 +459,11 @@ export default {
         },
 
         startLongTaskPhrases() {
-            this.longTaskMessage = LONG_TASK_PHRASES[Math.floor(Math.random() * LONG_TASK_PHRASES.length)];
+            const phrases = this.$t('vipProcessingPhrases');
+            this.longTaskMessage = phrases[Math.floor(Math.random() * phrases.length)];
             this.longTaskInterval = setInterval(() => {
-                this.longTaskMessage = LONG_TASK_PHRASES[Math.floor(Math.random() * LONG_TASK_PHRASES.length)];
+                const updatedPhrases = this.$t('vipProcessingPhrases');
+                this.longTaskMessage = updatedPhrases[Math.floor(Math.random() * updatedPhrases.length)];
             }, 3000);
         },
         stopLongTaskPhrases() {
@@ -514,24 +495,24 @@ export default {
 
                 this.celebrateCompletion();
                 await DialogUtils.alert(
-                    `Successfully created ${decomposedTasks.length} subtasks from your VIP task!`,
-                    'Task Decomposition Complete'
+                    this.$t('vipSuccess', decomposedTasks.length),
+                    this.$t('vipSuccessTitle')
                 );
             } catch (error) {
                 console.error('VIP task creation failed:', error);
 
                 if (error.isTimeout) {
                     const fallback = await DialogUtils.confirm(
-                        'Task decomposition timed out. Create as regular task instead?',
-                        'Timeout - Fallback Option'
+                        this.$t('vipTimeout'),
+                        this.$t('vipTimeoutTitle')
                     );
                     if (fallback) {
                         await this.handleRegularTask(title);
                     }
                 } else {
                     await DialogUtils.alert(
-                        `VIP task creation failed: ${error.message}. Creating as regular task.`,
-                        'Fallback to Regular Task'
+                        this.$t('vipFail', error.message),
+                        this.$t('vipFallbackTitle')
                     );
                     await this.handleRegularTask(title);
                 }
@@ -570,7 +551,7 @@ export default {
                 if (idx !== -1) {
                     this.todos[idx].saving = false;
                     this.todos[idx].saveError = true;
-                    this.todos[idx].saveErrorMsg = error.message || 'Failed to save';
+                    this.todos[idx].saveErrorMsg = error.message || this.$t('saveFailed');
                 }
                 console.error('Failed to add todo:', error);
             } finally {
@@ -605,7 +586,7 @@ export default {
                 if (idx !== -1) {
                     this.todos[idx].saving = false;
                     this.todos[idx].saveError = true;
-                    this.todos[idx].saveErrorMsg = error.message || 'Failed to save';
+                    this.todos[idx].saveErrorMsg = error.message || this.$t('saveFailed');
                 }
                 console.error('Retry failed:', error);
             } finally {
@@ -649,7 +630,8 @@ export default {
         },
 
         celebrateCompletion() {
-            this.sound.cloneNode(true).play();
+            this.sound.currentTime = 0;
+            this.sound.play().catch(() => {});
             if (typeof confetti !== 'undefined') {
                 confetti({
                     particleCount: 350,
@@ -673,12 +655,12 @@ export default {
         },
 
         async markAllAsCompleted() {
-            const confirmed = await DialogUtils.confirm('Confirm to mark all as completed?');
+            const confirmed = await DialogUtils.confirm(this.$t('confirmMarkAll'));
             if (!confirmed) return;
 
             const incompleteTodos = this.todos.filter(todo => !todo.completed && !todo.removed);
             if (incompleteTodos.length === 0) {
-                await DialogUtils.alert('No incomplete tasks to mark as completed.', 'Info');
+                await DialogUtils.alert(this.$t('noIncomplete'), this.$t('infoTitle'));
                 return;
             }
 
@@ -720,8 +702,8 @@ export default {
         async editDone(todo) {
             if (todo.title === '') {
                 const confirmed = await DialogUtils.confirm(
-                    'Task title is empty. Delete this task?',
-                    'Confirm Deletion'
+                    this.$t('emptyTitle'),
+                    this.$t('confirmDeleteTask')
                 );
                 if (confirmed) {
                     await this.removeTodo(todo);
@@ -812,12 +794,12 @@ export default {
         },
 
         async clearCompleted() {
-            const confirmed = await DialogUtils.confirm('Confirm to clear all completed items?');
+            const confirmed = await DialogUtils.confirm(this.$t('confirmClearCompleted'));
             if (!confirmed) return;
 
             const completedTodos = this.todos.filter(todo => todo.completed && !todo.removed);
             if (completedTodos.length === 0) {
-                await DialogUtils.alert('No completed tasks to clear.', 'Info');
+                await DialogUtils.alert(this.$t('noCompleted'), this.$t('infoTitle'));
                 return;
             }
 
@@ -857,11 +839,11 @@ export default {
         },
 
         async clearAll() {
-            const confirmed = await DialogUtils.confirm('Confirm to clear all todo items?');
+            const confirmed = await DialogUtils.confirm(this.$t('confirmClearAll'));
             if (!confirmed) return;
 
             if (this.todos.length === 0 && this.recycleBin.length === 0) {
-                await DialogUtils.alert('No tasks to clear.', 'Info');
+                await DialogUtils.alert(this.$t('noTasks'), this.$t('infoTitle'));
                 return;
             }
 
@@ -901,8 +883,16 @@ export default {
         dragenter(index) {
             if (this.dragIndex !== index && this.draggedItem) {
                 if (['ongoing', 'completed', 'all'].includes(this.intention)) {
-                    const movedItem = this.filteredTodos.splice(this.dragIndex, 1)[0];
-                    this.filteredTodos.splice(index, 0, movedItem);
+                    // Must mutate this.todos directly — filteredTodos is a computed copy
+                    const filtered = this.filteredTodos;
+                    const fromTodo = filtered[this.dragIndex];
+                    const toTodo   = filtered[index];
+                    const fromIdx  = this.todos.indexOf(fromTodo);
+                    const toIdx    = this.todos.indexOf(toTodo);
+                    if (fromIdx !== -1 && toIdx !== -1) {
+                        const moved = this.todos.splice(fromIdx, 1)[0];
+                        this.todos.splice(toIdx, 0, moved);
+                    }
                     this.dragIndex = index;
                 }
             }
@@ -913,33 +903,38 @@ export default {
 
         async dragend() {
             if (this.draggedItem && this.originalIndex !== this.dragIndex) {
-                const targetSlot = this.dragIndex + 1;
+                const targetSlot       = this.dragIndex + 1;
                 const savedDraggedItem = this.draggedItem;
                 const savedOriginalIndex = this.originalIndex;
-                const savedDragIndex = this.dragIndex;
+                const savedDragIndex   = this.dragIndex;
 
                 const operationId = `move_${savedDraggedItem.id}`;
                 this.pendingOperations.add(operationId);
 
-                this.draggedItem = null;
+                this.draggedItem   = null;
                 this.originalIndex = null;
-                this.dragIndex = null;
+                this.dragIndex     = null;
+
+                // Optimistically stamp slots on this.todos now
+                this.todos.forEach((todo, i) => { todo.slot = i + 1; });
 
                 try {
                     if (!savedDraggedItem.isOptimistic) {
                         await ApiService.moveTask(savedDraggedItem.id, targetSlot);
                     }
                 } catch (error) {
-                    const movedItem = this.filteredTodos.splice(savedDragIndex, 1)[0];
-                    this.filteredTodos.splice(savedOriginalIndex, 0, movedItem);
-                    this.handleOptimisticError(error, 'Failed to move task');
+                    // Revert: move item back in this.todos
+                    const movedItem = this.todos.splice(savedDragIndex, 1)[0];
+                    this.todos.splice(savedOriginalIndex, 0, movedItem);
+                    this.todos.forEach((todo, i) => { todo.slot = i + 1; });
+                    console.error('Failed to move task:', error);
                 } finally {
                     this.pendingOperations.delete(operationId);
                 }
             } else {
-                this.draggedItem = null;
+                this.draggedItem   = null;
                 this.originalIndex = null;
-                this.dragIndex = null;
+                this.dragIndex     = null;
             }
         },
 
@@ -981,7 +976,7 @@ export default {
 
         toggleSidebar() {
             this.isShow = !this.isShow;
-            this.shortCut = this.isShow ? '＝' : 'OPEN✨';
+            this.shortCut = this.isShow ? this.$t('sidebarClose') : this.$t('sidebarOpen');
         },
 
         openSequenceDialog() {
@@ -1028,13 +1023,13 @@ export default {
             if (!key || this.deletingSpaceKey) return;
 
             if (this.spaceList.length <= 1) {
-                await DialogUtils.alert('Cannot delete the last set key.', 'Info');
+                await DialogUtils.alert(this.$t('spaceDeleteLastErr'), this.$t('infoTitle'));
                 return;
             }
 
             const confirmed = await DialogUtils.confirm(
-                `Delete set "${key}" and all tasks in it?`,
-                'Confirm Set Deletion'
+                this.$t('spaceDeleteConfirm', key),
+                this.$t('spaceDeleteConfirmTitle')
             );
             if (!confirmed) return;
 
@@ -1059,7 +1054,7 @@ export default {
                 }
             } catch (e) {
                 console.error('Failed to delete set:', e);
-                await DialogUtils.alert(`Failed to delete set: ${e.message || 'Unknown error'}`, 'Error');
+                await DialogUtils.alert(this.$t('spaceDeleteFail', e.message), this.$t('errorTitle'));
             } finally {
                 this.deletingSpaceKey = '';
             }
@@ -1112,13 +1107,13 @@ export default {
             const activeTodos = this.todos.filter(todo => !todo.removed && !todo.completed);
 
             if (activeTodos.length === 0) {
-                await DialogUtils.alert('No tasks available to convert to RUSH mode.', 'Info');
+                await DialogUtils.alert(this.$t('noActiveTasks'), this.$t('infoTitle'));
                 return;
             }
 
             const confirmed = await DialogUtils.confirm(
-                `Convert ${activeTodos.length} task(s) to RUSH mode?\n\nThis will redirect you to RUSH mode with your current tasks.`,
-                'Convert to RUSH Mode'
+                this.$t('convertRushMsg', activeTodos.length),
+                this.$t('confirmConvertRush')
             );
 
             if (!confirmed) return;
@@ -1144,7 +1139,7 @@ export default {
                 window.location.href = 'rush.html';
             } catch (error) {
                 console.error('Failed to convert to RUSH:', error);
-                await DialogUtils.alert('Failed to convert tasks to RUSH mode. Please try again.', 'Error');
+                await DialogUtils.alert(this.$t('convertRushFail'), this.$t('errorTitle'));
             }
         },
 
@@ -1217,11 +1212,23 @@ export default {
                 this.syncWithServer();
             }
         }, 30000);
+
+        this.beforeUnloadHandler = (event) => {
+            if (this.pendingOperations.size > 0 || this.isProcessingLongTask) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
     },
 
     beforeDestroy() {
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
+        }
+
+        if (this.beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
         }
     }
 };

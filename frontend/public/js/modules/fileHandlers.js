@@ -1,6 +1,29 @@
 import { ApiService } from './apiService.js';
 import { DialogUtils } from './dialogUtils.js';
 
+const t = (key, ...args) => {
+    if (typeof window._t === 'function') {
+        return window._t(key, ...args);
+    }
+
+    const fallbackMap = {
+        exportFail: (message) => `Export failed: ${message}`,
+        noFileSelected: 'No file selected!',
+        invalidFormat: 'Invalid format: expected array of todos',
+        importSuccess: (ok, total) => `Successfully imported ${ok} of ${total} items!`,
+        importPartial: (ok, fail) => `Import completed with ${ok} successes and ${fail} failures. See console for details.`,
+        importSuccessTitle: 'Import Success',
+        importPartialTitle: 'Import Partial Success',
+        importParseError: (message) => `File parsing error: ${message}. Please ensure the file is a valid JSON array of todo objects.`,
+        importReadError: (name) => `Error reading file: ${name}`,
+        importedTask: 'Imported Task',
+        errorTitle: 'Error'
+    };
+
+    const value = fallbackMap[key] ?? key;
+    return typeof value === 'function' ? value(...args) : value;
+};
+
 export class FileHandlers {
 
     static async exportTodos(todos) {
@@ -24,7 +47,7 @@ export class FileHandlers {
             element.click();
             document.body.removeChild(element);
         } catch (error) {
-            await DialogUtils.alert('Export failed: ' + error.message, 'Error');
+            await DialogUtils.alert(t('exportFail', error.message), t('errorTitle'));
         }
     }
 
@@ -37,7 +60,7 @@ export class FileHandlers {
         fileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) {
-                await DialogUtils.alert('No file selected!', 'Error');
+                await DialogUtils.alert(t('noFileSelected'), t('errorTitle'));
                 return;
             }
 
@@ -48,7 +71,7 @@ export class FileHandlers {
                     const importedData = JSON.parse(content.trim());
 
                     if (!Array.isArray(importedData)) {
-                        throw new Error('Invalid format: expected array of todos');
+                        throw new Error(t('invalidFormat'));
                     }
 
                     let successCount = 0;
@@ -56,7 +79,7 @@ export class FileHandlers {
 
                     for (let item of importedData) {
                         try {
-                            const titleToImport = item.title ? String(item.title) : 'Imported Task';
+                            const titleToImport = item.title ? String(item.title) : t('importedTask');
                             await ApiService.createTask(titleToImport);
                             successCount++;
                         } catch (err) {
@@ -68,20 +91,20 @@ export class FileHandlers {
                     if (onSuccess) await onSuccess();
 
                     const message = failureCount === 0
-                        ? `Successfully imported ${successCount} of ${importedData.length} items!`
-                        : `Import completed with ${successCount} successes and ${failureCount} failures. See console for details.`;
+                        ? t('importSuccess', successCount, importedData.length)
+                        : t('importPartial', successCount, failureCount);
 
-                    await DialogUtils.alert(message, failureCount === 0 ? 'Import Success' : 'Import Partial Success');
+                    await DialogUtils.alert(message, failureCount === 0 ? t('importSuccessTitle') : t('importPartialTitle'));
                 } catch (error) {
                     await DialogUtils.alert(
-                        'File parsing error: ' + error.message + '. Please ensure the file is a valid JSON array of todo objects.',
-                        'Error'
+                        t('importParseError', error.message),
+                        t('errorTitle')
                     );
                 }
             };
 
             reader.onerror = async (e) => {
-                await DialogUtils.alert('Error reading file: ' + e.target.error.name, 'Error');
+                await DialogUtils.alert(t('importReadError', e.target.error.name), t('errorTitle'));
             };
 
             reader.readAsText(file);
