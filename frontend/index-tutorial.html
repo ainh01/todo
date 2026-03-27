@@ -595,15 +595,18 @@
         </ul>
 
         <ul class="todo-list" ref="taskList">
-          <li v-for="(todo, index) in filteredTodos" :key="todo.id"
-            class="todo-item"
-            :class="{'completed': todo.completed && !todo.removed, 'deleted': todo.removed}"
-            :ref="index === 0 ? 'firstTask' : undefined"
-            draggable="true"
-            @dragstart="dragStart(index)"
-            @dragenter.prevent="dragEnter(index)"
-            @dragover.prevent
-            @dragend="dragEnd"
+          <li v-for="(todo, index) in filteredTodos" :key="todo.id"  
+            class="todo-item"  
+            :class="{'completed': todo.completed && !todo.removed, 'deleted': todo.removed}"  
+            :ref="index === 0 ? 'firstTask' : undefined"  
+            draggable="true"  
+            @dragstart="dragStart(index)"  
+            @dragenter.prevent="dragEnter(index)"  
+            @dragover.prevent  
+            @dragend="dragEnd"  
+            @touchstart.passive="touchDragStart(index, $event)"  
+            @touchmove="touchDragMove($event)"  
+            @touchend="touchDragEnd"  
           >
             <div v-if="editedTodoId !== todo.id"
               class="todo-content" :class="{completed: todo.completed}"
@@ -1008,12 +1011,23 @@
           },
           dragEnter(index) {
             if (this.dragIdx === null || this.dragIdx === index) return;
-            const list = [...this.filteredTodos];
-            const moved = list.splice(this.dragIdx, 1)[0];
-            list.splice(index, 0, moved);
-            if (this.intention === "all" || this.intention === undefined) {
-              this.todos = list;
-            }
+
+            // Resolve the two objects from the *filtered* view
+            const filtered  = this.filteredTodos;
+            const dragged   = filtered[this.dragIdx];
+            const target    = filtered[index];
+
+            const fromIdx = this.todos.indexOf(dragged);
+            const toIdx   = this.todos.indexOf(target);
+            if (fromIdx === -1 || toIdx === -1) { this.dragIdx = index; return; }
+
+            // Splice directly on this.todos regardless of active filter
+            this.todos.splice(fromIdx, 1);
+            // After removal, re-find target's position (it may have shifted by −1)
+            const insertAt = this.todos.indexOf(target);
+            // Insert before target when dragging up, after when dragging down
+            this.todos.splice(insertAt + (fromIdx < toIdx ? 1 : 0), 0, dragged);
+
             this.dragIdx = index;
           },
           async dragEnd() {
@@ -1021,6 +1035,36 @@
               MockApi.moveTask("mock", this.dragIdx + 1);
             this._fireTutHook("drag");
             this.dragIdx = null;
+          },
+          // ── Touch-drag support (mobile) ──────────────────────────  
+          touchDragStart(index, e) {  
+            this.dragIdx = index;  
+            // Store the list element reference for elementFromPoint lookup  
+            this._touchListEl = this.$refs.taskList;  
+          },  
+
+          touchDragMove(e) {  
+            e.preventDefault();                         // prevent page scroll  
+            if (this.dragIdx === null || !this._touchListEl) return;  
+
+            const touch = e.touches[0];  
+            // Temporarily hide pointer-events on panels so elementFromPoint sees the <li>  
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);  
+            if (!el) return;  
+
+            const li = el.closest('li.todo-item');  
+            if (!li) return;  
+
+            const items = Array.from(this._touchListEl.querySelectorAll('li.todo-item'));  
+            const idx   = items.indexOf(li);  
+            if (idx !== -1 && idx !== this.dragIdx) {  
+              this.dragEnter(idx);               // reuses the filter-safe logic from Fix 3  
+            }  
+          },  
+
+          touchDragEnd() {  
+            this._touchListEl = null;  
+            this.dragEnd();                      // fires _fireTutHook('drag') → advances step  
           },
 
           editSlogan() {
@@ -1260,44 +1304,26 @@
             }
           },
           _computePanels(r, pad) {
-            const vw = window.innerWidth,
-              vh = window.innerHeight;
-            const t = r.top - pad,
-              b = r.bottom + pad,
-              l = r.left - pad,
-              ri = r.right + pad,
-              h = r.height + pad * 2;
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const t = r.top - pad, b = r.bottom + pad,
+                  l = r.left - pad, ri = r.right + pad,
+                  h = r.height + pad * 2;
+
+            // Fix 1: during drag step the panels must NOT intercept dragenter/dragover
+            const step = this.tutSteps[this.tutStep];
+            const pe = step.actionType === 'drag' ? 'none' : 'all';
+
             this.panelStyles = [
-              {
-                top: "0",
-                left: "0",
-                width: "100vw",
-                height: Math.max(0, t) + "px",
-              },
-              {
-                top: b + "px",
-                left: "0",
-                width: "100vw",
-                height: Math.max(0, vh - b) + "px",
-              },
-              {
-                top: t + "px",
-                left: "0",
-                width: Math.max(0, l) + "px",
-                height: h + "px",
-              },
-              {
-                top: t + "px",
-                left: ri + "px",
-                width: Math.max(0, vw - ri) + "px",
-                height: h + "px",
-              },
-            ].map((s) => ({
+              { top: '0',    left: '0',    width: '100vw', height: Math.max(0, t)      + 'px' },
+              { top: b+'px', left: '0',    width: '100vw', height: Math.max(0, vh - b) + 'px' },
+              { top: t+'px', left: '0',    width: Math.max(0, l)      + 'px', height: h + 'px' },
+              { top: t+'px', left: ri+'px',width: Math.max(0, vw - ri)+ 'px', height: h + 'px' },
+            ].map(s => ({
               ...s,
-              position: "fixed",
-              background: "rgba(0,0,0,0.55)",
-              zIndex: "50000",
-              pointerEvents: "all",
+              position: 'fixed',
+              background: 'rgba(0,0,0,0.55)',
+              zIndex: '50000',
+              pointerEvents: pe,          // ← conditional
             }));
           },
           _computeArrow(r, pad, pos) {
