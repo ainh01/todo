@@ -6,13 +6,15 @@ import { logout } from '../modules/authGuard.js';
 import TodoItem from './TodoItem.js';
 import SidebarActions from './SidebarActions.js';
 import SequenceTaskDialog from './SequenceTaskDialog.js';
+import ImportVTaskDialog from './ImportVTaskDialog.js';
 
 export default {
     name: 'TodoApp',
     components: {
         TodoItem,
         SidebarActions,
-        SequenceTaskDialog
+        SequenceTaskDialog,
+        ImportVTaskDialog
     },
 
     template: `
@@ -178,6 +180,7 @@ export default {
           @open-sequence-dialog="openSequenceDialog"
           @convert-rush="convertToRush"
           @open-space-dialog="openSpaceDialog"
+          @open-import-vtask-dialog="openImportVTaskDialog"
         />
       </div>
 
@@ -239,6 +242,11 @@ export default {
         v-if="showSequenceDialog"
         @close="closeSequenceDialog"
         @create="handleSequenceCreate"
+      />
+      <ImportVTaskDialog
+        v-if="showImportVTaskDialog"
+        @close="closeImportVTaskDialog"
+        @import="handleVTaskImport"
       />
 
       <div class="custom-alert-overlay" v-if="showSpaceDialog">
@@ -314,6 +322,8 @@ export default {
             userEmail: localStorage.getItem('user_email') || '',
             isLoading: false,
             showSequenceDialog: false,
+            showImportVTaskDialog: false,
+            isImportingVTasks: false,
             sound: new Audio('/public/sound/confetti.mp3'),
             confettiColors: ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'],
             pendingOperations: new Set(),
@@ -985,6 +995,75 @@ export default {
 
         closeSequenceDialog() {
             this.showSequenceDialog = false;
+        },
+
+        openImportVTaskDialog() {
+            this.showImportVTaskDialog = true;
+        },
+
+        closeImportVTaskDialog() {
+            this.showImportVTaskDialog = false;
+        },
+
+        async handleVTaskImport(tasks) {
+            this.closeImportVTaskDialog();
+            const optimisticTasks = tasks.map(task => {
+                const opt = TodoStorage.createOptimisticTodo(task.title);
+                opt.description = task.description;
+                opt.saving = true;
+                opt.saveError = false;
+                return opt;
+            });
+            optimisticTasks.forEach(opt => this.todos.push(opt));
+
+            const operationId = `vtask_import_${Date.now()}`;
+            this.pendingOperations.add(operationId);
+
+            let successCount = 0;
+            try {
+                for (let i = 0; i < tasks.length; i++) {
+                    const task         = tasks[i];
+                    const optimistic   = optimisticTasks[i];
+
+                    const response   = await ApiService.createTask(task.title, task.description);  
+                    const serverTask = response.data || response; 
+ 
+                    const idx = this.todos.findIndex(t => t.id === optimistic.id);
+                    if (idx !== -1) {
+                        this.todos.splice(idx, 1, {
+                            id:          serverTask.task_id,
+                            title:       serverTask.title, 
+                            description: task.description,  
+                            slot:        serverTask.slot,
+                            completed:   serverTask.finished || false,
+                            removed:     false,
+                        });
+                    }
+
+                    successCount++;
+                }
+                await DialogUtils.alert(
+                    this.$t('importVTaskSuccess', successCount),
+                    this.$t('importVTaskSuccessTitle')
+                );
+
+            } catch (error) {
+                optimisticTasks.forEach(opt => {  
+                    const idx = this.todos.findIndex(t => t.id === opt.id);
+                    if (idx !== -1 && this.todos[idx].id === opt.id) {
+                        this.todos.splice(idx, 1);
+                    }
+                });
+
+                console.error('VTask import failed:', error);
+                await DialogUtils.alert(
+                    this.$t('importVTaskFail', error.message || this.$t('unexpectedError')),
+                    this.$t('errorTitle')
+                );
+
+            } finally {
+                this.pendingOperations.delete(operationId);
+            }
         },
 
         async openSpaceDialog() {

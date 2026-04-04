@@ -104,6 +104,14 @@ export default {
               @click="$emit('open-sequence-dialog')"
             />
           </li>
+          <li>
+            <input
+              type="button"
+              :value="$t('importVTask')"
+              class="btn-small action-import"
+              @click="$emit('open-import-vtask-dialog')"
+            />
+          </li>
           <li v-if="leftTodosCount">
             <input
               type="button"

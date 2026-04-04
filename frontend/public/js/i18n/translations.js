@@ -208,7 +208,19 @@ export const translations = {
             'Decomposing complexity into simplicity...',
             'Crafting a clear path forward...',
             'Wrapping up the heavy lifting...'
-        ]
+        ],
+        importVTask:             'Import VTask',  
+        importVTaskPlaceholder:  'Paste your VTask formatted string here...',  
+        importVTaskBtn:          'Import',  
+        importVTaskImporting:    'Importing…',  
+        importVTaskNoTasks:      '⚠ No valid fTask blocks found. Check the format.',  
+        importVTaskPreview:      (count) => `${count} task(s) detected`,  
+        importVTaskSuccess:      (count) => `Successfully imported ${count} task(s)!`,  
+        importVTaskSuccessTitle: 'Import Complete',  
+        importVTaskFail:         (msg)   => `Import failed: ${msg}. Changes have been rolled back.`,  
+        forceQuiz:               'Force Quiz',  
+        pasteBtn:                'Paste',  
+        pasteFailed:             'Clipboard access denied. Please paste manually.', 
     },
     vi: {
         addPlaceholder: "Thêm việc cần làm... (Thêm tiền tố 'VIP' để tách nhỏ)",
@@ -419,6 +431,18 @@ export const translations = {
             'Đang biến sự phức tạp thành sự đơn giản...',
             'Đang vạch ra con đường rõ ràng để tiến tới...',
             'Đang hoàn thiện các quy trình xử lý cuối cùng...'
-        ]
+        ],
+        importVTask:             'Nhập VTask',  
+        importVTaskPlaceholder:  'Dán chuỗi định dạng VTask vào đây...',  
+        importVTaskBtn:          'Nhập',  
+        importVTaskImporting:    'Đang nhập…',  
+        importVTaskNoTasks:      '⚠ Không tìm thấy khối fTask hợp lệ. Kiểm tra định dạng.',  
+        importVTaskPreview:      (count) => `Phát hiện ${count} công việc`,  
+        importVTaskSuccess:      (count) => `Đã nhập thành công ${count} công việc!`,  
+        importVTaskSuccessTitle: 'Nhập hoàn tất',  
+        importVTaskFail:         (msg)   => `Lỗi nhập: ${msg}. Đã hoàn tác toàn bộ.`,  
+        forceQuiz:               'Bắt buộc Quiz',  
+        pasteBtn:                'Dán',  
+        pasteFailed:             'Không truy cập được clipboard. Vui lòng dán thủ công.',  
     }
 };
